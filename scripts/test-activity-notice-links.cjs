@@ -153,6 +153,60 @@ async function main() {
   assert.equal(display[1].image, '');
   assert.equal(display[1].linkUrl, valid[0], 'image fallback keeps its destination');
 
+  // 轮播轨道与横屏双卡循环逻辑校验：
+  // 1) 拖动刚结束时忽略误触点击
+  card.onViewDragEnd();
+  card.handleSelect(display[1]);
+  assert.deepEqual(selected, ['linked'], 'tap immediately after drag must be suppressed');
+  card.lastDragEndAt = 0;
+
+  // 2) 竖屏 3 卡：cloneCount=1，trackSlides=[C, A, B, C, A]
+  const carouselCtx = (notices, isWideLayout) => {
+    const ctx = instance(carousel);
+    ctx.notices = notices;
+    ctx.isWideLayout = isWideLayout;
+    for (const [key, getter] of Object.entries(carousel.computed)) {
+      Object.defineProperty(ctx, key, { get: () => getter.call(ctx), configurable: true });
+    }
+    return ctx;
+  };
+  const threeNotices = [
+    { value: 'a', title: 'A' },
+    { value: 'b', title: 'B' },
+    { value: 'c', title: 'C' }
+  ];
+  const portraitThree = carouselCtx(threeNotices, false);
+  assert.equal(portraitThree.displayCount, 1);
+  assert.equal(portraitThree.canLoop, true);
+  assert.equal(portraitThree.cloneCount, 1);
+  assert.deepEqual(Array.from(portraitThree.trackSlides, s => s.notice.value), ['c', 'a', 'b', 'c', 'a']);
+
+  // 3) 横屏 two-up 3 卡：cloneCount=2，trackSlides=[B, C, A, B, C, A, B]；小程序 swiper 自动翻倍为 6 项防抢位
+  const landscapeThree = carouselCtx(threeNotices, true);
+  assert.equal(landscapeThree.isTwoUp, true);
+  assert.equal(landscapeThree.displayCount, 2);
+  assert.equal(landscapeThree.canLoop, true);
+  assert.equal(landscapeThree.cloneCount, 2);
+  assert.deepEqual(Array.from(landscapeThree.trackSlides, s => s.notice.value), ['b', 'c', 'a', 'b', 'c', 'a', 'b']);
+  assert.deepEqual(Array.from(landscapeThree.mpSwiperSlides, s => s.notice.value), ['a', 'b', 'c', 'a', 'b', 'c']);
+  // @change 对真实长度取模且绝不回写 swiperCurrent（防止受控 current 回写打断手势）
+  landscapeThree.handleChange({ detail: { current: 4 } });
+  assert.equal(landscapeThree.activeIndex, 1);
+  assert.equal(landscapeThree.swiperCurrent, 0);
+  // 点击指示点支持主动跳转
+  landscapeThree.handleDotTap(2);
+  assert.equal(landscapeThree.activeIndex, 2);
+  assert.equal(landscapeThree.swiperCurrent, 2);
+  assert.equal(landscapeThree.jumpIndex, 2);
+  assert.equal(landscapeThree.jumpSeq, 1);
+
+  // 4) 横屏 two-up 恰好 2 卡：静态并排展示，不克隆不循环
+  const landscapeTwo = carouselCtx(threeNotices.slice(0, 2), true);
+  assert.equal(landscapeTwo.isTwoUp, true);
+  assert.equal(landscapeTwo.canLoop, false);
+  assert.equal(landscapeTwo.cloneCount, 0);
+  assert.deepEqual(Array.from(landscapeTwo.trackSlides, s => s.notice.value), ['a', 'b']);
+
   for (const h5 of [false, true]) {
     const calls = [];
     const api = loadLink(h5, calls);

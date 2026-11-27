@@ -53,8 +53,8 @@
                 <view
                     v-if="item.imageUrls && item.imageUrls.length > 0"
                     class="image-container-wrapper"
-                    :style="item.imageStyle"
-                    @tap.stop.prevent="onPreviewImage"
+                    :style="imageWrapperStyle"
+                    @tap.stop.prevent="onImageWrapperTap"
                     :data-src="item.imageUrls[0]"
                     :data-original-image-urls="item.originalImageUrls || item.imageUrls"
                 >
@@ -83,7 +83,13 @@
                             class="image-swiper"
                             :indicator-dots="true"
                             :circular="true"
-                            :style="'height: ' + (swiperHeight ? swiperHeight + 'px' : '220px') + ';'"
+                            @touchstart.stop="onMultiSwiperTouchStart"
+                            @touchmove="onMultiSwiperTouchMove"
+                            @touchend.stop="onMultiSwiperTouchEnd"
+                            @touchcancel.stop="onMultiSwiperTouchEnd"
+                            @mousedown.stop="onMultiSwiperMouseDown"
+                            @change="onMultiSwiperChange"
+                            @transition="onMultiSwiperTransition"
                         >
                             <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
                                 <swiper-item>
@@ -96,6 +102,8 @@
                                         :title="displayTitle || item.content || '帖子图片'"
                                         @error="onImageError"
                                         @load="onImageLoad"
+                                        @touchmove="onMultiSwiperTouchMove"
+                                        @dragstart.prevent
                                         @tap.stop.prevent="onPreviewImageMulti"
                                         :data-src="img"
                                         :data-original-image-urls="item.originalImageUrls || item.imageUrls"
@@ -196,8 +204,24 @@ import PoemRichText from '@/components/poem/PoemRichText.vue';
 export default {
     components: { PoemRichText, PoemCreationMeta },
     name: 'PostItem',
-    data() { return { voteMotionVersion: 0 }; },
-    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'toggle-expand'],
+    data() {
+        return {
+            voteMotionVersion: 0,
+            multiPointerDown: false,
+            multiTouchStartX: 0,
+            multiTouchStartY: 0,
+            multiSwipeMoved: false,
+            lastMultiSwipeAt: 0
+        };
+    },
+    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'toggle-expand', 'inner-swiper-touch-change'],
+    beforeUnmount() {
+        this.unbindMultiMouseListeners();
+        if (this.multiPointerDown) {
+            this.multiPointerDown = false;
+            this.$emit('inner-swiper-touch-change', false);
+        }
+    },
     props: {
         // 帖子数据
         item: {
@@ -276,6 +300,9 @@ export default {
         },
         authorAvatarSrc() {
             return resolvePostAuthorAvatar(this.item);
+        },
+        imageWrapperStyle() {
+            return (this.item && this.item.imageStyle) || 'height: 0; padding-bottom: 75%;';
         },
         displayTitle() {
             const title = this.normalizeText(this.item && this.item.title);
@@ -452,6 +479,128 @@ export default {
                 isAnonymous: this.item.isAnonymous
             });
         },
+        getPointerPoint(e) {
+            if (!e) return null;
+            const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+            if (touch) {
+                const x = typeof touch.clientX === 'number' ? touch.clientX : Number(touch.pageX || 0);
+                const y = typeof touch.clientY === 'number' ? touch.clientY : Number(touch.pageY || 0);
+                return { x, y };
+            }
+            if (typeof e.clientX === 'number' || typeof e.pageX === 'number') {
+                const x = typeof e.clientX === 'number' ? e.clientX : Number(e.pageX || 0);
+                const y = typeof e.clientY === 'number' ? e.clientY : Number(e.pageY || 0);
+                return { x, y };
+            }
+            return null;
+        },
+        bindMultiMouseListeners() {
+            if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+                return;
+            }
+            this.unbindMultiMouseListeners();
+            this._onWindowMultiMouseMove = (evt) => {
+                this.onMultiSwiperTouchMove(evt);
+            };
+            this._onWindowMultiMouseUp = (evt) => {
+                this.onMultiSwiperTouchEnd(evt);
+            };
+            window.addEventListener('mousemove', this._onWindowMultiMouseMove, true);
+            window.addEventListener('mouseup', this._onWindowMultiMouseUp, true);
+            window.addEventListener('dragend', this._onWindowMultiMouseUp, true);
+            window.addEventListener('blur', this._onWindowMultiMouseUp, true);
+        },
+        unbindMultiMouseListeners() {
+            if (typeof window === 'undefined' || typeof window.removeEventListener !== 'function') {
+                return;
+            }
+            if (this._onWindowMultiMouseMove) {
+                window.removeEventListener('mousemove', this._onWindowMultiMouseMove, true);
+                this._onWindowMultiMouseMove = null;
+            }
+            if (this._onWindowMultiMouseUp) {
+                window.removeEventListener('mouseup', this._onWindowMultiMouseUp, true);
+                window.removeEventListener('dragend', this._onWindowMultiMouseUp, true);
+                window.removeEventListener('blur', this._onWindowMultiMouseUp, true);
+                this._onWindowMultiMouseUp = null;
+            }
+        },
+        onMultiSwiperTouchStart(e) {
+            const pt = this.getPointerPoint(e);
+            this.multiPointerDown = true;
+            this.multiSwipeMoved = false;
+            this.multiTouchStartX = pt ? pt.x : 0;
+            this.multiTouchStartY = pt ? pt.y : 0;
+            this.$emit('inner-swiper-touch-change', true);
+        },
+        onMultiSwiperMouseDown(e) {
+            if (e && typeof e.preventDefault === 'function') {
+                e.preventDefault();
+            }
+            this.onMultiSwiperTouchStart(e);
+            this.bindMultiMouseListeners();
+        },
+        onMultiSwiperTouchMove(e) {
+            if (!this.multiPointerDown) {
+                return;
+            }
+            const pt = this.getPointerPoint(e);
+            if (!pt) {
+                return;
+            }
+            const dx = Math.abs(pt.x - this.multiTouchStartX);
+            const dy = Math.abs(pt.y - this.multiTouchStartY);
+            if (dx > 6 || dy > 6) {
+                this.multiSwipeMoved = true;
+                this.lastMultiSwipeAt = Date.now();
+            }
+        },
+        onMultiSwiperTouchEnd(e) {
+            const pt = this.getPointerPoint(e);
+            if (pt && this.multiPointerDown) {
+                const dx = Math.abs(pt.x - this.multiTouchStartX);
+                const dy = Math.abs(pt.y - this.multiTouchStartY);
+                if (dx > 6 || dy > 6) {
+                    this.multiSwipeMoved = true;
+                }
+            }
+            if (this.multiSwipeMoved) {
+                this.lastMultiSwipeAt = Date.now();
+            }
+            const wasDown = this.multiPointerDown;
+            this.multiPointerDown = false;
+            this.unbindMultiMouseListeners();
+            if (wasDown) {
+                this.$emit('inner-swiper-touch-change', false);
+            }
+        },
+        onMultiSwiperTransition(e) {
+            if (!this.multiPointerDown || !e || !e.detail) {
+                return;
+            }
+            const dx = Math.abs(Number(e.detail.dx) || 0);
+            const dy = Math.abs(Number(e.detail.dy) || 0);
+            if (dx > 6 || dy > 6) {
+                this.multiSwipeMoved = true;
+                this.lastMultiSwipeAt = Date.now();
+            }
+        },
+        onMultiSwiperChange(e) {
+            const source = e && e.detail ? e.detail.source : '';
+            if (!source || source === 'touch') {
+                this.multiSwipeMoved = true;
+                this.lastMultiSwipeAt = Date.now();
+            }
+        },
+        shouldSuppressMultiTap() {
+            return this.multiSwipeMoved || (Date.now() - this.lastMultiSwipeAt < 280);
+        },
+        onImageWrapperTap(e) {
+            if (this.item && Array.isArray(this.item.imageUrls) && this.item.imageUrls.length > 1) {
+                return;
+            }
+            this.onPreviewImage(e);
+        },
         // 预览图片（单图/外层容器点击）
         onPreviewImage(e) {
             const originals = Array.isArray(this.item.originalImageUrls) ? this.item.originalImageUrls : [];
@@ -469,6 +618,10 @@ export default {
         },
         // 预览图片（多图swiper内点击）
         onPreviewImageMulti(e) {
+            if (this.shouldSuppressMultiTap()) {
+                this.multiSwipeMoved = false;
+                return;
+            }
             const dataset = e.currentTarget.dataset;
             const originals = Array.isArray(this.item.originalImageUrls) ? this.item.originalImageUrls : [];
             const urls = this.item.imageUrls.map((url, index) => originals[index] || url);
@@ -763,6 +916,8 @@ export default {
 .image-container-wrapper .image-swiper {
     position: absolute;
     top: 0;
+    right: 0;
+    bottom: 0;
     left: 0;
     width: 100%;
     height: 100%;
@@ -771,7 +926,17 @@ export default {
 /* 多张图片的swiper样式 */
 .image-swiper {
     width: 100%;
+    height: 100%;
     background-color: var(--app-post-section-bg, #fff);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.image-swiper .post-image,
+.image-swiper :deep(img) {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .swiper-item {
@@ -786,7 +951,7 @@ export default {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: contain;
+    object-fit: cover;
     /* 图片加载淡入动画 */
     opacity: 0;
     animation: imageFadeIn 0.4s ease forwards;

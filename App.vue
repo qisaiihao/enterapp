@@ -3,6 +3,7 @@
 import { checkAndUpdate } from '@/utils/appUpdate.js';
 import { requestPoemWidgetNext } from '@/uni_modules/poem-widget';
 import { getPoemWidgetNextToken } from '@/utils/poemWidget.js';
+import { refreshLayoutSnapshot, syncDeviceOrientationLock } from '@/utils/layout.js';
 // #endif
 // #ifdef APP-PLUS || H5
 import { cancelTabTransition } from '@/utils/appTabTransition.js';
@@ -39,6 +40,7 @@ export default {
         this.syncGlobalDataFromAppState();
         // #ifdef APP-PLUS
         this.runWhenPlusReady((plusInstance) => {
+            syncDeviceOrientationLock(refreshLayoutSnapshot(), { force: true });
             this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
         }, 'handle launch args');
         // #endif
@@ -63,6 +65,7 @@ export default {
         unreadBadge.startPolling();
         // #ifdef APP-PLUS
         this.runWhenPlusReady((plusInstance) => {
+            syncDeviceOrientationLock(refreshLayoutSnapshot());
             this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
 
             if (!this._newintentListenerAdded && plusInstance.globalEvent && plusInstance.globalEvent.addEventListener) {

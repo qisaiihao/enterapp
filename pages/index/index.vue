@@ -15,7 +15,7 @@
                     @touchmove="onSwiperTouchMove"
                     @touchend="onSwiperTouchEnd"
                     :duration="300"
-                    :disable-touch="false"
+                    :disable-touch="isInnerSwiperTouching"
                     :circular="false"
                     :indicator-dots="false"
                     :autoplay="false"
@@ -55,6 +55,7 @@
                             @vote="handleVote"
                             @comment-click="handleCommentClick"
                             @like-icon-error="onLikeIconError"
+                            @inner-swiper-touch-change="onInnerSwiperTouchChange"
                             @touch-start="onTouchStart"
                             @touch-move="onTouchMove"
                             @touch-end="onTouchEnd"
@@ -92,6 +93,7 @@
                             @vote="handleVote"
                             @comment-click="handleCommentClick"
                             @like-icon-error="onLikeIconError"
+                            @inner-swiper-touch-change="onInnerSwiperTouchChange"
                             @touch-start="onTouchStart"
                             @touch-move="onTouchMove"
                             @touch-end="onTouchEnd"
@@ -138,6 +140,7 @@
                             @vote="handleVote"
                             @comment-click="handleCommentClick"
                             @like-icon-error="onLikeIconError"
+                            @inner-swiper-touch-change="onInnerSwiperTouchChange"
                             @touch-start="onTouchStart"
                             @touch-move="onTouchMove"
                             @touch-end="onTouchEnd"
@@ -353,7 +356,8 @@ export default {
             hoverResetTimer: null,
             lastScrollTime: 0,
             isSwiping: false,
-            swipeDirectionDecided: false
+            swipeDirectionDecided: false,
+            isInnerSwiperTouching: false
         };
     },
     computed: {
@@ -484,13 +488,24 @@ export default {
         this.syncLikeStatusFromCache();
 
             },
-    onHide() { this.showHomeFilterPanel = false; },
+    onHide() {
+        this.showHomeFilterPanel = false;
+        this.isInnerSwiperTouching = false;
+        if (this._innerSwiperUnlockTimer) {
+            clearTimeout(this._innerSwiperUnlockTimer);
+            this._innerSwiperUnlockTimer = null;
+        }
+    },
     onUnload: function () {
         this._homeFeedRequestId = (this._homeFeedRequestId || 0) + 1;
         this.releaseGlobalEventBindings();
         if (this.swiperChangeTimer) {
             clearTimeout(this.swiperChangeTimer);
             this.swiperChangeTimer = null;
+        }
+        if (this._innerSwiperUnlockTimer) {
+            clearTimeout(this._innerSwiperUnlockTimer);
+            this._innerSwiperUnlockTimer = null;
         }
     },
 
@@ -736,11 +751,32 @@ export default {
         },
 
                 onSwiperTouchStart(e) {
+            if (this.isInnerSwiperTouching) return;
             this.swiperTouchStartX = e.touches[0].clientX;
             this.swiperTouchStartY = e.touches[0].clientY;
             this.swiperTouchStartTime = Date.now();
             this.isSwiping = false;
             this.swipeDirectionDecided = false;
+        },
+
+        onInnerSwiperTouchChange(active) {
+            if (this._innerSwiperUnlockTimer) {
+                clearTimeout(this._innerSwiperUnlockTimer);
+                this._innerSwiperUnlockTimer = null;
+            }
+            if (active) {
+                this.isInnerSwiperTouching = true;
+                this.isSwiping = false;
+                this.swipeDirectionDecided = false;
+                this.swiperTouchStartX = null;
+                this.swiperTouchStartY = null;
+                this.swiperTouchStartTime = null;
+                return;
+            }
+            this._innerSwiperUnlockTimer = setTimeout(() => {
+                this._innerSwiperUnlockTimer = null;
+                this.isInnerSwiperTouching = false;
+            }, 60);
         },
 
         onSwiperTouchMove(e) {
@@ -1615,6 +1651,9 @@ export default {
 
         // 处理图片预览（适配 PostItem 组件）
         handlePreviewImage: function (data) {
+            if ((this.tapDisabled && this.tapDisabled()) || this.isSwiping) {
+                return;
+            }
             console.log('【index】处理图片预览:', {
                 current: data.src,
                 urls: data.urls,

@@ -3,6 +3,7 @@
         :scroll-y="scrollEnabled" 
         class="feed-list-scroll" 
         @scroll="handleScroll"
+        @scrolltolower="handleScrollToLower"
         @touchstart="onTouchStart"
         @touchmove="onTouchMove"
         @touchend="onTouchEnd"
@@ -52,6 +53,7 @@
                         @vote="$emit('vote', $event)"
                         @comment-click="$emit('comment-click', $event)"
                         @like-icon-error="$emit('like-icon-error', $event)"
+                        @inner-swiper-touch-change="$emit('inner-swiper-touch-change', $event)"
                     />
                 </view>
                 <view class="app-masonry-column">
@@ -75,6 +77,7 @@
                         @vote="$emit('vote', $event)"
                         @comment-click="$emit('comment-click', $event)"
                         @like-icon-error="$emit('like-icon-error', $event)"
+                        @inner-swiper-touch-change="$emit('inner-swiper-touch-change', $event)"
                     />
                 </view>
             </view>
@@ -99,6 +102,7 @@
                     @vote="$emit('vote', $event)"
                     @comment-click="$emit('comment-click', $event)"
                     @like-icon-error="$emit('like-icon-error', $event)"
+                    @inner-swiper-touch-change="$emit('inner-swiper-touch-change', $event)"
                 />
             </template>
         </view>
@@ -126,7 +130,7 @@ export default {
         skeleton,
         PostItem
     },
-    emits: ['avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'refresh', 'load-more', 'scroll-top', 'touch-start', 'touch-move', 'touch-end'],
+    emits: ['avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'inner-swiper-touch-change', 'refresh', 'load-more', 'scroll-top', 'touch-start', 'touch-move', 'touch-end'],
     props: {
         // 帖子列表
         posts: {
@@ -216,6 +220,8 @@ export default {
     data() {
         return {
             scrollTimer: null,
+            viewportFillTimer: null,
+            viewportAutoFillCount: 0,
             touchStartX: 0,
             touchStartY: 0,
             touchMoved: false
@@ -224,6 +230,10 @@ export default {
     computed: {
         useTwoColumnLayout() {
             return !!(this.appLayout && this.appLayout.feedColumns >= 2);
+        },
+        viewportFillWatchKey() {
+            const layout = this.appLayout || {};
+            return `${layout.feedColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
         },
         leftColumnPosts() {
             const list = Array.isArray(this.posts) ? this.posts : [];
@@ -252,16 +262,57 @@ export default {
     },
     watch: {
         posts: {
-            handler(newVal) {
-                console.log('📋 [FeedList] posts 变化:', newVal?.length || 0);
+            handler(newVal, oldVal) {
+                const newLen = Array.isArray(newVal) ? newVal.length : 0;
+                const oldLen = Array.isArray(oldVal) ? oldVal.length : 0;
+                console.log('📋 [FeedList] posts 变化:', newLen);
+                if (newLen === 0) {
+                    this.viewportAutoFillCount = 0;
+                    return;
+                }
+                if (newLen > oldLen && !this.isLoading && !this.isLoadingMore && this.hasMore) {
+                    this.scheduleViewportFillCheck({ resetCounter: oldLen === 0 });
+                }
             },
             immediate: true
+        },
+        isLoading(nextVal, prevVal) {
+            if (prevVal && !nextVal && this.hasMore && Array.isArray(this.posts) && this.posts.length > 0) {
+                this.scheduleViewportFillCheck({ resetCounter: true });
+            }
+        },
+        viewportFillWatchKey() {
+            if (!this.isLoading && !this.isLoadingMore && this.hasMore && Array.isArray(this.posts) && this.posts.length > 0) {
+                this.scheduleViewportFillCheck({ resetCounter: true });
+            }
         }
     },
     methods: {
+        getViewportHeight() {
+            if (typeof window !== 'undefined' && Number(window.innerHeight) > 0) {
+                return window.innerHeight;
+            }
+            if (this.appLayout && Number(this.appLayout.windowHeight) > 0) {
+                return this.appLayout.windowHeight;
+            }
+            try {
+                const info = getWindowInfoCompat();
+                return Number(info && info.windowHeight) || 0;
+            } catch (_) {
+                return 0;
+            }
+        },
+
         // 下拉刷新
         onRefresherRefresh() {
             this.$emit('refresh');
+        },
+
+        handleScrollToLower() {
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) {
+                return;
+            }
+            this.$emit('load-more');
         },
 
         // 滚动事件 - 检测是否需要加载更多
@@ -276,6 +327,51 @@ export default {
             }, 100);
         },
 
+        scheduleViewportFillCheck({ resetCounter = false } = {}) {
+            if (resetCounter) {
+                this.viewportAutoFillCount = 0;
+            }
+            if (this.viewportFillTimer) {
+                clearTimeout(this.viewportFillTimer);
+                this.viewportFillTimer = null;
+            }
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.posts) || this.posts.length === 0) return;
+            if (this.viewportAutoFillCount >= 3) return;
+
+            this.$nextTick(() => {
+                this.viewportFillTimer = setTimeout(() => {
+                    this.viewportFillTimer = null;
+                    this.checkViewportFill();
+                }, 100);
+            });
+        },
+
+        checkViewportFill() {
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.posts) || this.posts.length === 0) return;
+            if (this.viewportAutoFillCount >= 3) return;
+
+            try {
+                const winH = this.getViewportHeight();
+                if (!winH) return;
+
+                uni.createSelectorQuery()
+                    .in(this)
+                    .select(`#${this.containerId}`)
+                    .boundingClientRect((rect) => {
+                        if (!rect || !rect.height) return;
+                        if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+                        const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+                        if (rectBottom <= winH + 120) {
+                            this.viewportAutoFillCount += 1;
+                            this.$emit('load-more');
+                        }
+                    })
+                    .exec();
+            } catch (_) {}
+        },
+
         // 检查是否需要加载更多
         checkLoadMore() {
             if (!this.hasMore || this.isLoading || this.isLoadingMore) {
@@ -283,8 +379,10 @@ export default {
             }
 
             try {
-                const info = getWindowInfoCompat();
-                const winH = info.windowHeight;
+                const winH = this.getViewportHeight();
+                if (!winH) {
+                    return;
+                }
 
                 uni.createSelectorQuery()
                     .in(this)
@@ -294,7 +392,7 @@ export default {
                             return;
                         }
 
-                        const rectBottom = rect.top + rect.height;
+                        const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
                         let distanceToBottom = rectBottom - winH;
 
                         if (distanceToBottom < 0) {
@@ -336,6 +434,10 @@ export default {
         if (this.scrollTimer) {
             clearTimeout(this.scrollTimer);
             this.scrollTimer = null;
+        }
+        if (this.viewportFillTimer) {
+            clearTimeout(this.viewportFillTimer);
+            this.viewportFillTimer = null;
         }
     }
 };

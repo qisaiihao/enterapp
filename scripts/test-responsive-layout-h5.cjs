@@ -46,9 +46,36 @@ async function main() {
     await page.evaluate(() => {
       const vm = getCurrentPages().at(-1)?.$vm;
       if (!vm) return;
+      vm._homeFeedRequestId = (vm._homeFeedRequestId || 0) + 1000;
       const samplePosts = [
-        { _id: 'fixture-1', title: '春夜读诗记', content: '窗外的雨落得很轻\n檐下旧灯摇曳着微光\n我们在回车键里停顿了一秒', authorName: '回车君', isPoem: true, isOriginal: true, tags: ['春日', '夜雨'], formattedCreateTime: '刚刚', votes: 12, commentCount: 3 },
-        { _id: 'fixture-2', title: '山风吹过旧书架', content: '翻到夹着银杏叶的那一页\n字迹已经微微泛黄\n可句子还带着秋天的温度', authorName: '林间客', isPoem: true, isOriginal: true, tags: ['读书', '银杏'], formattedCreateTime: '5分钟前', votes: 28, commentCount: 7 },
+        {
+          _id: 'fixture-1',
+          title: '春夜读诗记',
+          content: '窗外的雨落得很轻\n檐下旧灯摇曳着微光\n我们在回车键里停顿了一秒',
+          authorName: '回车君',
+          isPoem: true,
+          isOriginal: true,
+          imageUrls: ['/static/images/filter.png', '/static/images/seed.png'],
+          imageStyle: 'height: 0; padding-bottom: 75%;',
+          tags: ['春日', '夜雨'],
+          formattedCreateTime: '刚刚',
+          votes: 12,
+          commentCount: 3
+        },
+        {
+          _id: 'fixture-2',
+          title: '山风吹过旧书架',
+          content: '翻到夹着银杏叶的那一页\n字迹已经微微泛黄\n可句子还带着秋天的温度',
+          authorName: '林间客',
+          isPoem: true,
+          isOriginal: true,
+          imageUrls: ['/static/images/seed.png'],
+          imageStyle: 'height: 0; padding-bottom: 75%;',
+          tags: ['读书', '银杏'],
+          formattedCreateTime: '5分钟前',
+          votes: 28,
+          commentCount: 7
+        },
         { _id: 'fixture-3', title: '关于现代诗分行节奏的讨论', content: '大家在写长句时更习惯自然呼吸断行，还是刻意制造跨行停顿？', authorName: '诗社编辑', isPoem: false, isOriginal: false, tags: ['讨论', '分行'], formattedCreateTime: '18分钟前', votes: 19, commentCount: 9 },
         { _id: 'fixture-4', title: '海边车站', content: '末班车驶离后\n月台只剩潮声和站牌的回音', authorName: '南风', isPoem: true, isOriginal: true, tags: ['海边'], formattedCreateTime: '1小时前', votes: 42, commentCount: 5 }
       ];
@@ -68,13 +95,40 @@ async function main() {
       await page.evaluate(async () => {
         const vm = getCurrentPages().at(-1)?.$vm;
         if (vm) {
+          vm._homeFeedRequestId = (vm._homeFeedRequestId || 0) + 1000;
           vm.useRecommendFeed = false;
           vm.isLoading = false;
           vm.homeHasEverLoaded = true;
-          if (!vm.postList || vm.postList.length === 0) {
+          if (!vm.postList || !vm.postList.some((p) => p && p._id === 'fixture-1')) {
             vm.postList = [
-              { _id: 'fixture-1', title: '春夜读诗记', content: '窗外的雨落得很轻\n檐下旧灯摇曳着微光', authorName: '回车君', isPoem: true, isOriginal: true, tags: ['春日'], formattedCreateTime: '刚刚', votes: 12, commentCount: 3 },
-              { _id: 'fixture-2', title: '山风吹过旧书架', content: '翻到夹着银杏叶的那一页\n字迹已经微微泛黄', authorName: '林间客', isPoem: true, isOriginal: true, tags: ['读书'], formattedCreateTime: '5分钟前', votes: 28, commentCount: 7 }
+              {
+                _id: 'fixture-1',
+                title: '春夜读诗记',
+                content: '窗外的雨落得很轻\n檐下旧灯摇曳着微光',
+                authorName: '回车君',
+                isPoem: true,
+                isOriginal: true,
+                imageUrls: ['/static/images/filter.png', '/static/images/seed.png'],
+                imageStyle: 'height: 0; padding-bottom: 75%;',
+                tags: ['春日'],
+                formattedCreateTime: '刚刚',
+                votes: 12,
+                commentCount: 3
+              },
+              {
+                _id: 'fixture-2',
+                title: '山风吹过旧书架',
+                content: '翻到夹着银杏叶的那一页\n字迹已经微微泛黄',
+                authorName: '林间客',
+                isPoem: true,
+                isOriginal: true,
+                imageUrls: ['/static/images/seed.png'],
+                imageStyle: 'height: 0; padding-bottom: 75%;',
+                tags: ['读书'],
+                formattedCreateTime: '5分钟前',
+                votes: 28,
+                commentCount: 7
+              }
             ];
           }
           if (typeof vm.$nextTick === 'function') await vm.$nextTick();
@@ -89,6 +143,17 @@ async function main() {
         const cols = masonry ? masonry.querySelectorAll('.app-masonry-column').length : 0;
         const topBar = document.querySelector('.top-bar-container');
         const topRect = topBar ? topBar.getBoundingClientRect() : null;
+        const imageWrappers = Array.from(document.querySelectorAll('#post-list-container .image-container-wrapper')).map((wrapper) => {
+          const wRect = wrapper.getBoundingClientRect();
+          const swiper = wrapper.querySelector('.image-swiper');
+          const img = wrapper.querySelector('.post-image');
+          const sRect = swiper ? swiper.getBoundingClientRect() : null;
+          return {
+            wrapper: { width: Math.round(wRect.width), height: Math.round(wRect.height) },
+            swiper: sRect ? { width: Math.round(sRect.width), height: Math.round(sRect.height) } : null,
+            image: img ? { width: Math.round(img.offsetWidth), height: Math.round(img.offsetHeight) } : null
+          };
+        });
         return {
           sizeClass: root.getAttribute('data-layout-size'),
           navMode: root.getAttribute('data-nav-mode'),
@@ -96,7 +161,8 @@ async function main() {
           rootFontSize: parseFloat(getComputedStyle(root).fontSize),
           tabRect: tabRect ? { left: Math.round(tabRect.left), top: Math.round(tabRect.top), width: Math.round(tabRect.width), height: Math.round(tabRect.height) } : null,
           topRect: topRect ? { left: Math.round(topRect.left), width: Math.round(topRect.width), height: Math.round(topRect.height) } : null,
-          masonryColumns: cols
+          masonryColumns: cols,
+          imageWrappers
         };
       });
 
@@ -105,6 +171,22 @@ async function main() {
       assert.equal(metrics.overflowX, false, `${vp.name}: horizontal overflow detected`);
       assert.ok(metrics.rootFontSize <= 22, `${vp.name}: rpx root fontSize exploded (${metrics.rootFontSize}px)`);
       assert.ok(metrics.tabRect, `${vp.name}: tab-bar must be visible`);
+      assert.ok(metrics.imageWrappers.length >= 2, `${vp.name}: expected image wrapper fixtures`);
+      for (const box of metrics.imageWrappers) {
+        assert.ok(box.wrapper.width > 100 && box.wrapper.height > 100, `${vp.name}: invalid image wrapper size ${JSON.stringify(box)}`);
+        if (box.swiper) {
+          assert.ok(
+            Math.abs(box.swiper.width - box.wrapper.width) <= 2 && Math.abs(box.swiper.height - box.wrapper.height) <= 2,
+            `${vp.name}: swiper must fill image-container-wrapper without bottom grey gap ${JSON.stringify(box)}`
+          );
+        }
+        if (box.image) {
+          assert.ok(
+            Math.abs(box.image.width - box.wrapper.width) <= 2 && Math.abs(box.image.height - box.wrapper.height) <= 2,
+            `${vp.name}: image must fill image-container-wrapper ${JSON.stringify(box)}`
+          );
+        }
+      }
 
       if (vp.expectedNav === 'rail') {
         assert.ok(metrics.tabRect.width >= 76 && metrics.tabRect.width <= 96, `${vp.name}: rail width mismatch ${JSON.stringify(metrics.tabRect)}`);
@@ -119,6 +201,108 @@ async function main() {
       }
       await page.screenshot({ path: path.join(outDir, `index-${vp.name}.png`) });
     }
+
+    // 验证 iPad 横屏下滑动多图轮播：不误触大图预览、不带动外层 page-swiper 切到关注页，且纯净点击仍可打开预览
+    await page.setViewport({ width: 1194, height: 834, deviceScaleFactor: 1, isMobile: false, hasTouch: true });
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+    await new Promise((r) => setTimeout(r, 260));
+    const swiperBox = await page.evaluate(() => {
+      const vm = getCurrentPages().at(-1)?.$vm;
+      if (vm) {
+        vm.swiperCurrent = 0;
+        vm.currentTab = 'square';
+        vm.currentPage = 'home';
+      }
+      window.__previewCalls = [];
+      const origPreview = uni.previewImage;
+      window.__origPreviewImage = origPreview;
+      uni.previewImage = (opts) => {
+        window.__previewCalls.push(opts);
+      };
+      const el = document.querySelector('#post-list-container .image-swiper');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+    assert.ok(swiperBox && swiperBox.width > 150, 'ipad-landscape: multi-image swiper must be visible for gesture test');
+
+    const startX = swiperBox.left + swiperBox.width * 0.78;
+    const endX = swiperBox.left + swiperBox.width * 0.22;
+    const midY = swiperBox.top + swiperBox.height * 0.5;
+
+    const beforeSwipeDot = await page.evaluate(() => {
+      const dots = Array.from(document.querySelectorAll('#post-list-container .image-swiper .uni-swiper-dot'));
+      return dots.findIndex((d) => d.classList.contains('uni-swiper-dot-active'));
+    });
+
+    // 1) 触摸滑动多图 swiper（模拟平板/手机手指横滑）
+    await page.evaluate(({ sx, ex, y }) => {
+      const target = document.querySelector('#post-list-container .image-swiper .post-image') || document.querySelector('#post-list-container .image-swiper');
+      if (!target || typeof Touch === 'undefined') return;
+      const makeTouch = (x) => new Touch({ identifier: 1, target, clientX: x, clientY: y, pageX: x, pageY: y });
+      const t0 = makeTouch(sx);
+      target.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: [t0], targetTouches: [t0], changedTouches: [t0] }));
+      for (let i = 1; i <= 6; i += 1) {
+        const curX = sx + ((ex - sx) * i) / 6;
+        const ti = makeTouch(curX);
+        target.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: [ti], targetTouches: [ti], changedTouches: [ti] }));
+      }
+      const tEnd = makeTouch(ex);
+      target.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [], targetTouches: [], changedTouches: [tEnd] }));
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: ex, clientY: y }));
+    }, { sx: startX, ex: endX, y: midY });
+    await new Promise((r) => setTimeout(r, 340));
+
+    const afterTouchSwipe = await page.evaluate(() => {
+      const vm = getCurrentPages().at(-1)?.$vm;
+      const dots = Array.from(document.querySelectorAll('#post-list-container .image-swiper .uni-swiper-dot'));
+      return {
+        innerDot: dots.findIndex((d) => d.classList.contains('uni-swiper-dot-active')),
+        swiperCurrent: vm ? vm.swiperCurrent : -1,
+        currentTab: vm ? vm.currentTab : '',
+        previewCount: (window.__previewCalls || []).length,
+        isInnerSwiperTouching: vm ? !!vm.isInnerSwiperTouching : false
+      };
+    });
+    assert.notEqual(afterTouchSwipe.innerDot, beforeSwipeDot, `inner multi-image swiper must advance slide on touch swipe (before=${beforeSwipeDot}, after=${afterTouchSwipe.innerDot})`);
+    assert.equal(afterTouchSwipe.swiperCurrent, 0, `touch swipe on multi-image carousel must NOT swipe page to following (got ${afterTouchSwipe.swiperCurrent})`);
+    assert.equal(afterTouchSwipe.currentTab, 'square', `touch swipe on multi-image carousel must stay on square tab (got ${afterTouchSwipe.currentTab})`);
+    assert.equal(afterTouchSwipe.previewCount, 0, `touch swipe on multi-image carousel must NOT trigger image preview (got ${afterTouchSwipe.previewCount})`);
+    assert.equal(afterTouchSwipe.isInnerSwiperTouching, false, 'outer page-swiper touch lock must release after inner touch swipe ends');
+
+    // 2) 鼠标拖拽多图 swiper（模拟横屏触控板/鼠标滑动）
+    await page.mouse.move(startX, midY);
+    await page.mouse.down();
+    await page.mouse.move((startX + endX) / 2, midY, { steps: 6 });
+    await page.mouse.move(endX, midY, { steps: 6 });
+    await page.mouse.up();
+    await new Promise((r) => setTimeout(r, 340));
+
+    const afterSwipe = await page.evaluate(() => {
+      const vm = getCurrentPages().at(-1)?.$vm;
+      return {
+        swiperCurrent: vm ? vm.swiperCurrent : -1,
+        currentTab: vm ? vm.currentTab : '',
+        previewCount: (window.__previewCalls || []).length,
+        isInnerSwiperTouching: vm ? !!vm.isInnerSwiperTouching : false
+      };
+    });
+    assert.equal(afterSwipe.swiperCurrent, 0, `swiping multi-image carousel must NOT swipe page to following (got ${afterSwipe.swiperCurrent})`);
+    assert.equal(afterSwipe.currentTab, 'square', `swiping multi-image carousel must stay on square tab (got ${afterSwipe.currentTab})`);
+    assert.equal(afterSwipe.previewCount, 0, `swiping multi-image carousel must NOT trigger image preview (got ${afterSwipe.previewCount})`);
+    assert.equal(afterSwipe.isInnerSwiperTouching, false, 'outer page-swiper touch lock must release after inner swipe ends');
+
+    // 3) 滑动结束后纯净点击图片，仍可正常打开大图预览
+    await page.mouse.click(swiperBox.left + swiperBox.width * 0.5, midY);
+    await new Promise((r) => setTimeout(r, 120));
+    const afterCleanTap = await page.evaluate(() => {
+      const count = (window.__previewCalls || []).length;
+      if (window.__origPreviewImage) {
+        uni.previewImage = window.__origPreviewImage;
+      }
+      return count;
+    });
+    assert.equal(afterCleanTap, 1, `clean tap on multi-image post must still open preview (got ${afterCleanTap})`);
 
     // 验证帖子详情页在 iPad 横屏下的左诗右评双栏布局
     await page.setViewport({ width: 1194, height: 834, deviceScaleFactor: 1, isMobile: false, hasTouch: true });

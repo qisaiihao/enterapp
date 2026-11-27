@@ -167,7 +167,9 @@
 
       <!-- 底部加载/结束提示 -->
       <view class="loading-footer">
-        <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+        <text v-if="isLoadingMore" class="loading-footer-text">加载中...</text>
+        <text v-else-if="hasMore && postList.length > 0" class="loading-footer-action" @tap="loadMorePoems">加载更多</text>
+        <text v-else-if="!hasMore && postList.length > 0" class="loading-footer-text">—— 到底啦 ——</text>
       </view>
     </view>
 
@@ -280,9 +282,14 @@ export default {
     try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
   },
   onReachBottom() {
-    if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
-    this.showPageIndicator = true;
-    this.getPostList(() => { this.showPageIndicator = false; });
+    this.loadMorePoems();
+  },
+  watch: {
+    viewportFillWatchKey() {
+      if (!this.isLoading && this.hasMore && this.postList.length > 0) {
+        this.scheduleEnsureViewportFilled({ resetCounter: true });
+      }
+    }
   },
   components: { AppMotion,
     skeleton,
@@ -335,6 +342,10 @@ export default {
     hasAvatarBar() { return this.isReadingMode || this.showFollowingOnly; },
     useTwoColumnPoems() {
       return !!(this.appLayout && this.appLayout.poemColumns >= 2);
+    },
+    viewportFillWatchKey() {
+      const layout = this.appLayout || {};
+      return `${layout.poemColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
     },
     leftColumnPoems() {
       const list = Array.isArray(this.postList) ? this.postList : [];
@@ -448,6 +459,7 @@ export default {
       });
       this.syncLikeStatusFromCache();
       this.convertCloudUrls(this.postList).catch(() => {});
+      this.scheduleEnsureViewportFilled({ resetCounter: true });
       scheduleTabPreload();
     } else {
       this.getIndexData(() => scheduleTabPreload());
@@ -462,6 +474,7 @@ export default {
     // #endif
     this._postListRequestId = (this._postListRequestId || 0) + 1;
     clearTimeout(this._scrollTimer);
+    clearTimeout(this._viewportFillTimer);
   },
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
@@ -481,38 +494,84 @@ export default {
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
     this._scrollTimer = setTimeout(() => {
       // 双重检查：防止在定时器期间状态已变化
-      if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
-      
-      // 增加加载锁定标志，防止重复触发
-      if (this._loadingLock) {
-        console.log('【poem-square】加载锁定中，跳过本次滚动检查');
-        return;
-      }
-      
+      if (!this.hasMore || this.isLoadingMore || this.isLoading || this._loadingLock) return;
+
       try {
-        const info = getWindowInfoCompat();
-        const winH = info.windowHeight;
+        const winH = this.getViewportHeight();
+        if (!winH) return;
         uni.createSelectorQuery().in(this).select('#post-list-container').boundingClientRect((rect) => {
           if (!rect || !rect.height) return;
-          const distanceToBottom = rect.height - e.scrollTop - winH;
+          const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+          const distanceToBottom = rectBottom - winH;
           const preloadThreshold = winH * 1.5;
           if (distanceToBottom < preloadThreshold) {
-            // 再次检查状态，防止在查询期间状态变化
-            if (this._loadingLock || !this.hasMore || this.isLoadingMore || this.isLoading) {
-              return;
-            }
-            this._loadingLock = true;
-            this.showPageIndicator = true;
-            this.getPostList(() => {
-              this.showPageIndicator = false;
-              this._loadingLock = false;
-            });
+            this.loadMorePoems();
           }
         }).exec();
       } catch (_) {}
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    getViewportHeight() {
+      if (typeof window !== 'undefined' && Number(window.innerHeight) > 0) {
+        return window.innerHeight;
+      }
+      if (this.appLayout && Number(this.appLayout.windowHeight) > 0) {
+        return this.appLayout.windowHeight;
+      }
+      try {
+        const info = getWindowInfoCompat();
+        return Number(info && info.windowHeight) || 0;
+      } catch (_) {
+        return 0;
+      }
+    },
+    loadMorePoems() {
+      if (!this.hasMore || this.isLoadingMore || this.isLoading || this._loadingLock) return;
+      this.showPageIndicator = true;
+      this.getPostList(() => {
+        this.showPageIndicator = false;
+      });
+    },
+    scheduleEnsureViewportFilled({ resetCounter = false } = {}) {
+      if (resetCounter) {
+        this._viewportAutoFillCount = 0;
+      }
+      if (this._viewportFillTimer) {
+        clearTimeout(this._viewportFillTimer);
+        this._viewportFillTimer = null;
+      }
+      if (!this.hasMore || this.isLoading || this.isLoadingMore || this._loadingLock) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if ((this._viewportAutoFillCount || 0) >= 4) return;
+
+      this.$nextTick(() => {
+        this._viewportFillTimer = setTimeout(() => {
+          this._viewportFillTimer = null;
+          this.checkViewportFill();
+        }, 80);
+      });
+    },
+    checkViewportFill() {
+      if (!this.hasMore || this.isLoading || this.isLoadingMore || this._loadingLock) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if ((this._viewportAutoFillCount || 0) >= 4) return;
+
+      try {
+        const winH = this.getViewportHeight();
+        if (!winH) return;
+        uni.createSelectorQuery().in(this).select('#post-list-container').boundingClientRect((rect) => {
+          if (!rect || !rect.height) return;
+          if (!this.hasMore || this.isLoading || this.isLoadingMore || this._loadingLock) return;
+          const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+          // 宽屏双列等场景下首屏内容不足一屏（无法触发页面滚动）时自动补载下一页
+          if (rectBottom <= winH + 120) {
+            this._viewportAutoFillCount = (this._viewportAutoFillCount || 0) + 1;
+            this.getPostList();
+          }
+        }).exec();
+      } catch (_) {}
+    },
     setPoemMode(mode) {
       const target = mode === 'reading' ? 'reading' : 'original';
       if (target === this.poemMode) return;
@@ -532,6 +591,7 @@ export default {
       this.showPoemFilterPanel = false;
       this._postListRequestId = (this._postListRequestId || 0) + 1;
       clearTimeout(this._scrollTimer);
+      clearTimeout(this._viewportFillTimer);
       const saved = states[this.poemMode];
       this._poemScrollTop = saved?.scrollTop || 0;
       this.showPageIndicator = false;
@@ -539,6 +599,7 @@ export default {
         const { scrollTop, ...feed } = saved;
         this.applyLocalState({ ...feed, isLoading: false, isLoadingMore: false, _loadingLock: false });
         this.syncLikeStatusFromCache();
+        this.scheduleEnsureViewportFilled({ resetCounter: true });
       } else {
         this.getIndexData();
       }
@@ -722,6 +783,8 @@ export default {
     getIndexData(callback) {
       // 命中首批缓存时也要让上一轮加载失效。
       this._postListRequestId = (this._postListRequestId || 0) + 1;
+      clearTimeout(this._viewportFillTimer);
+      this._viewportFillTimer = null;
       this.showPageIndicator = false;
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
       console.log('【poem-square】当前状态:', {
@@ -805,6 +868,7 @@ export default {
         // 新鲜缓存直接展示，不能在 100ms 后再强刷掉刚交接的首屏。
         this.syncLikeStatusFromCache();
         this.convertCloudUrls(this.postList).catch(() => {});
+        this.scheduleEnsureViewportFilled({ resetCounter: true });
         if (typeof callback === 'function') callback();
       } else {
         // 没有缓存，正常加载
@@ -1134,8 +1198,10 @@ export default {
       await this.convertCloudUrls(visibleList);
       if (requestId !== this._postListRequestId) return;
       
+      const isFirstPage = this.page === 0;
+      const prevLength = Array.isArray(this.postList) ? this.postList.length : 0;
       let newPostList;
-      if (this.page === 0) {
+      if (isFirstPage) {
         // 第一页必须以服务端返回为准，避免缓存里的旧分页混入当前列表。
         newPostList = visibleList;
       } else {
@@ -1166,6 +1232,9 @@ export default {
       if (typeof cb === 'function') {
         console.log('【poem-square】执行回调函数');
         cb(newPostList); // 传递新列表数据给回调
+      }
+      if (this.hasMore && (isFirstPage || newPostList.length > prevLength)) {
+        this.scheduleEnsureViewportFilled({ resetCounter: isFirstPage });
       }
     },
     onPoemCardTap(payload = {}) {
@@ -1598,6 +1667,8 @@ export default {
 .empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 
 .loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }
+.loading-footer-text { font-size: 26rpx; color: var(--app-muted-text, #999); }
+.loading-footer-action { display: inline-block; padding: 12rpx 32rpx; border-radius: 999rpx; font-size: 26rpx; color: var(--app-secondary-text, #666); background: var(--app-subtle-surface-bg, #f2f2f2); cursor: pointer; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 

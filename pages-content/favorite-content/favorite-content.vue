@@ -70,7 +70,6 @@
                                     class="image-swiper"
                                     :indicator-dots="true"
                                     :circular="true"
-                                    :style="'height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
                                 >
                                     <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
                                         <swiper-item>
@@ -567,6 +566,8 @@ export default {
 .image-container-wrapper .image-swiper {
     position: absolute;
     top: 0;
+    right: 0;
+    bottom: 0;
     left: 0;
     width: 100%;
     height: 100%;
@@ -583,6 +584,7 @@ export default {
 
 .image-swiper {
     width: 100%;
+    height: 100%;
     border-radius: 12rpx;
     overflow: hidden;
 }

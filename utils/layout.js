@@ -10,6 +10,8 @@ const MEDIUM_MIN_WIDTH = 600;
 const EXPANDED_MIN_WIDTH = 840;
 const DETAIL_SPLIT_MIN_WIDTH = 720;
 const SHORT_LANDSCAPE_MAX_HEIGHT = 500;
+// 行业通用的大屏短边阈值（略低于 sw600dp 以兼容全部折叠屏展开态，远高于直板手机 360-440px）
+const LARGE_SCREEN_MIN_EDGE = 560;
 
 const NAV_RAIL_WIDTH_MEDIUM = 80;
 const NAV_RAIL_WIDTH_EXPANDED = 156;
@@ -17,6 +19,7 @@ const NAV_RAIL_WIDTH_EXPANDED = 156;
 let cachedSnapshot = null;
 let listenerInstalled = false;
 let resizeTimer = null;
+let lastOrientationLockState = '';
 const localListeners = new Set();
 
 function isMpWeixinRuntime() {
@@ -115,6 +118,12 @@ function buildLayoutSnapshot(rawInfo = null, options = {}) {
   );
 
   const safeAreaInsets = resolveSafeAreaInsets(info, windowWidth, windowHeight);
+  const screenWidth = Math.round(toPositiveNumber(info.screenWidth, windowWidth));
+  const screenHeight = Math.round(toPositiveNumber(info.screenHeight, windowHeight));
+  const minWindowEdge = Math.min(windowWidth, windowHeight);
+  const minScreenEdge = Math.min(screenWidth, screenHeight);
+  const isLargeScreenDevice = Math.max(minScreenEdge, minWindowEdge) >= LARGE_SCREEN_MIN_EDGE;
+
   const isLandscape = windowWidth > windowHeight;
   const isShortLandscape = isLandscape && windowHeight < SHORT_LANDSCAPE_MAX_HEIGHT;
 
@@ -129,7 +138,7 @@ function buildLayoutSnapshot(rawInfo = null, options = {}) {
   const isMedium = sizeClass === 'medium';
   const isExpanded = sizeClass === 'expanded';
   const isWide = !isCompact;
-  const isSplitDetail = windowWidth >= DETAIL_SPLIT_MIN_WIDTH;
+  const isSplitDetail = windowWidth >= DETAIL_SPLIT_MIN_WIDTH && !isShortLandscape;
 
   const mpWeixin = typeof options.mpWeixin === 'boolean' ? options.mpWeixin : isMpWeixinRuntime();
   let navMode = 'bottom';
@@ -154,6 +163,9 @@ function buildLayoutSnapshot(rawInfo = null, options = {}) {
   return Object.freeze({
     windowWidth,
     windowHeight,
+    screenWidth,
+    screenHeight,
+    isLargeScreenDevice,
     isLandscape,
     isShortLandscape,
     sizeClass,
@@ -263,11 +275,39 @@ function notifyLayoutChange(snapshot) {
   } catch (_) {}
 }
 
+function syncDeviceOrientationLock(snapshot = getLayoutSnapshot(), options = {}) {
+  if (!snapshot) return '';
+  const desired = snapshot.isLargeScreenDevice ? 'unlocked' : 'portrait';
+  if (!options.force && lastOrientationLockState === desired) {
+    return desired;
+  }
+
+  // #ifdef APP-PLUS
+  try {
+    if (typeof plus !== 'undefined' && plus && plus.screen) {
+      if (desired === 'portrait' && typeof plus.screen.lockOrientation === 'function') {
+        plus.screen.lockOrientation('portrait-primary');
+        lastOrientationLockState = desired;
+        return desired;
+      }
+      if (desired === 'unlocked' && typeof plus.screen.unlockOrientation === 'function') {
+        plus.screen.unlockOrientation();
+        lastOrientationLockState = desired;
+        return desired;
+      }
+    }
+  } catch (_) {}
+  // #endif
+
+  return '';
+}
+
 function refreshLayoutSnapshot(override = null, options = {}) {
   const next = buildLayoutSnapshot(override, options);
   const changed = !isSameSnapshot(cachedSnapshot, next);
   cachedSnapshot = next;
   applyLayoutToDocument(next);
+  syncDeviceOrientationLock(next);
   if (changed || options.force) {
     notifyLayoutChange(next);
   }
@@ -334,6 +374,7 @@ function subscribeLayoutChange(listener) {
 function resetLayoutStateForTest() {
   cachedSnapshot = null;
   listenerInstalled = false;
+  lastOrientationLockState = '';
   if (resizeTimer) {
     clearTimeout(resizeTimer);
     resizeTimer = null;
@@ -349,12 +390,14 @@ export {
   MEDIUM_MIN_WIDTH,
   EXPANDED_MIN_WIDTH,
   DETAIL_SPLIT_MIN_WIDTH,
+  LARGE_SCREEN_MIN_EDGE,
   NAV_RAIL_WIDTH_MEDIUM,
   NAV_RAIL_WIDTH_EXPANDED,
   buildLayoutSnapshot,
   getLayoutSnapshot,
   getLayoutCssVars,
   applyLayoutToDocument,
+  syncDeviceOrientationLock,
   refreshLayoutSnapshot,
   installLayoutListener,
   subscribeLayoutChange,
@@ -370,12 +413,14 @@ export default {
   MEDIUM_MIN_WIDTH,
   EXPANDED_MIN_WIDTH,
   DETAIL_SPLIT_MIN_WIDTH,
+  LARGE_SCREEN_MIN_EDGE,
   NAV_RAIL_WIDTH_MEDIUM,
   NAV_RAIL_WIDTH_EXPANDED,
   buildLayoutSnapshot,
   getLayoutSnapshot,
   getLayoutCssVars,
   applyLayoutToDocument,
+  syncDeviceOrientationLock,
   refreshLayoutSnapshot,
   installLayoutListener,
   subscribeLayoutChange,
@@ -392,12 +437,14 @@ if (typeof module !== 'undefined' && module.exports) {
     MEDIUM_MIN_WIDTH,
     EXPANDED_MIN_WIDTH,
     DETAIL_SPLIT_MIN_WIDTH,
+    LARGE_SCREEN_MIN_EDGE,
     NAV_RAIL_WIDTH_MEDIUM,
     NAV_RAIL_WIDTH_EXPANDED,
     buildLayoutSnapshot,
     getLayoutSnapshot,
     getLayoutCssVars,
     applyLayoutToDocument,
+    syncDeviceOrientationLock,
     refreshLayoutSnapshot,
     installLayoutListener,
     subscribeLayoutChange,

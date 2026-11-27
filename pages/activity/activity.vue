@@ -6,7 +6,7 @@
     <top-bar reserve-space compact :show-left="false" :show-actions="false" />
 
     <view class="activity-page-inner">
-      <activity-notice-carousel :notices="displayNoticeItems" @select="openNotice" />
+      <activity-notice-carousel :notices="displayNoticeItems" :active="isPageActive" @select="openNotice" />
 
       <activity-category-bar
         :categories="activityCategories"
@@ -83,6 +83,7 @@ export default {
       loading: false,
       loadingMore: false,
       activeCategory: 'publish',
+      isPageActive: true,
       noticeItems: [],
       openingNotice: false,
       defaultNoticeItems: [
@@ -123,6 +124,10 @@ export default {
   computed: {
     displayNoticeItems() {
       return this.noticeItems.length > 0 ? this.noticeItems : this.defaultNoticeItems;
+    },
+    viewportFillWatchKey() {
+      const layout = this.appLayout || {};
+      return `${layout.activityColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
     }
   },
   onLoad() {
@@ -133,6 +138,7 @@ export default {
     this.refresh(true);
   },
   onShow() {
+    this.isPageActive = true;
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (_) {}
     // #endif
@@ -141,8 +147,24 @@ export default {
     if (this._hasShownActivityNotices) this.fetchNotices(true);
     this._hasShownActivityNotices = true;
   },
+  onHide() {
+    this.isPageActive = false;
+  },
+  onUnload() {
+    if (this._viewportFillTimer) {
+      clearTimeout(this._viewportFillTimer);
+      this._viewportFillTimer = null;
+    }
+  },
   onReachBottom() {
     this.loadMore();
+  },
+  watch: {
+    viewportFillWatchKey() {
+      if (!this.loading && !this.loadingMore && this.hasMore && this.activities.length > 0) {
+        this.scheduleViewportFillCheck({ resetCounter: true });
+      }
+    }
   },
   methods: {
     async openNotice(notice) {
@@ -164,6 +186,29 @@ export default {
       await this.fetchActivities({ refresh: true, fromPullDown });
     },
 
+    areNoticesEqual(prevList = [], nextList = []) {
+      if (!Array.isArray(prevList) || !Array.isArray(nextList) || prevList.length !== nextList.length) {
+        return false;
+      }
+      for (let i = 0; i < prevList.length; i++) {
+        const a = prevList[i] || {};
+        const b = nextList[i] || {};
+        if (
+          a.value !== b.value ||
+          a.title !== b.title ||
+          a.summary !== b.summary ||
+          a.kicker !== b.kicker ||
+          a.mark !== b.mark ||
+          a.image !== b.image ||
+          a.linkUrl !== b.linkUrl ||
+          a.tone !== b.tone
+        ) {
+          return false;
+        }
+      }
+      return true;
+    },
+
     async fetchNotices(forceRefresh = false) {
       try {
         const result = await getActivityNotices({
@@ -172,10 +217,62 @@ export default {
           forceRefresh
         });
         const notices = Array.isArray(result && result.notices) ? result.notices : [];
-        this.noticeItems = notices;
+        if (!this.areNoticesEqual(this.noticeItems, notices)) {
+          this.noticeItems = notices;
+        }
       } catch (error) {
         console.warn('[activity-list] load notices failed:', error);
       }
+    },
+
+    getViewportHeight() {
+      if (typeof window !== 'undefined' && Number(window.innerHeight) > 0) {
+        return window.innerHeight;
+      }
+      if (this.appLayout && Number(this.appLayout.windowHeight) > 0) {
+        return this.appLayout.windowHeight;
+      }
+      return 0;
+    },
+
+    scheduleViewportFillCheck({ resetCounter = false } = {}) {
+      if (resetCounter) {
+        this._viewportAutoFillCount = 0;
+      }
+      if (this._viewportFillTimer) {
+        clearTimeout(this._viewportFillTimer);
+        this._viewportFillTimer = null;
+      }
+      if (!this.hasMore || this.loading || this.loadingMore) return;
+      if (!Array.isArray(this.activities) || this.activities.length === 0) return;
+      if ((this._viewportAutoFillCount || 0) >= 3) return;
+
+      this.$nextTick(() => {
+        this._viewportFillTimer = setTimeout(() => {
+          this._viewportFillTimer = null;
+          this.checkViewportFill();
+        }, 100);
+      });
+    },
+
+    checkViewportFill() {
+      if (!this.hasMore || this.loading || this.loadingMore) return;
+      if (!Array.isArray(this.activities) || this.activities.length === 0) return;
+      if ((this._viewportAutoFillCount || 0) >= 3) return;
+
+      try {
+        const winH = this.getViewportHeight();
+        if (!winH) return;
+        uni.createSelectorQuery().in(this).select('.activity-list').boundingClientRect((rect) => {
+          if (!rect || !rect.height) return;
+          if (!this.hasMore || this.loading || this.loadingMore) return;
+          const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+          if (rectBottom <= winH + 120) {
+            this._viewportAutoFillCount = (this._viewportAutoFillCount || 0) + 1;
+            this.loadMore();
+          }
+        }).exec();
+      } catch (_) {}
     },
 
     async loadMore() {
@@ -185,12 +282,14 @@ export default {
 
     async fetchActivities({ refresh = false, fromPullDown = false } = {}) {
       const targetPage = this.page;
+      const prevLength = Array.isArray(this.activities) ? this.activities.length : 0;
       if (targetPage === 0) {
         this.loading = true;
       } else {
         this.loadingMore = true;
       }
 
+      let hadGrowth = false;
       try {
         const result = await getRecentActivities({
           page: targetPage,
@@ -202,10 +301,12 @@ export default {
         const list = Array.isArray(result.activities) ? result.activities : [];
         if (targetPage === 0) {
           this.activities = list;
+          hadGrowth = list.length > 0;
         } else {
           const existingIds = new Set(this.activities.map(item => item && item._id).filter(Boolean));
           const uniqueList = list.filter(item => item && item._id && !existingIds.has(item._id));
           this.activities = this.activities.concat(uniqueList);
+          hadGrowth = this.activities.length > prevLength;
         }
 
         this.hasMore = typeof result.hasMore === 'boolean' ? result.hasMore : list.length === this.pageSize;
@@ -221,6 +322,9 @@ export default {
         this.loadingMore = false;
         if (fromPullDown) {
           uni.stopPullDownRefresh();
+        }
+        if (this.hasMore && hadGrowth) {
+          this.scheduleViewportFillCheck({ resetCounter: targetPage === 0 });
         }
       }
     },
