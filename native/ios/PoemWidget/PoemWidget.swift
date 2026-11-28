@@ -141,18 +141,17 @@ struct PoemWidgetView: View {
             .renderingMode(.original)
             .resizable()
             .interpolation(.high)
+            .antialiased(true)
         #if compiler(>=6.0)
         if #available(iOS 18.0, *) {
             image
                 .widgetAccentedRenderingMode(.fullColor)
-                .antialiased(true)
                 .scaledToFill()
                 .frame(width: 22, height: 22)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .accessibilityHidden(true)
         } else {
             image
-                .antialiased(true)
                 .scaledToFill()
                 .frame(width: 22, height: 22)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
@@ -160,7 +159,6 @@ struct PoemWidgetView: View {
         }
         #else
         image
-            .antialiased(true)
             .scaledToFill()
             .frame(width: 22, height: 22)
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
