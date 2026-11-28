@@ -181,6 +181,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -198,6 +200,18 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 400rpx;
+}
+
+@media screen and (min-width: 600px) {
+  .bio {
+    max-width: none;
+  }
+}
+
+@media screen and (max-height: 500px) {
+  .empty {
+    margin-top: 80rpx;
+  }
 }
 
 .action-btn {

@@ -154,6 +154,14 @@ export default {
     border-radius: 0;
     box-shadow: none;
     border: none;
+    max-width: calc(100% - 60rpx);
+    overflow-x: auto;
+    overflow-y: hidden;
+    box-sizing: border-box;
+}
+
+.books-container::-webkit-scrollbar {
+    display: none;
 }
 
 .books-container-inline {

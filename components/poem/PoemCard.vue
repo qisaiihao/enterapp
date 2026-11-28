@@ -17,6 +17,9 @@
           :style="{ backgroundColor: cardBackgroundColor }"
           @tap="emitCardTap"
           @longpress="emitLongpress"
+          <!-- #ifdef H5 -->
+          v-mouse-longpress="emitLongpress"
+          <!-- #endif -->
         >
           <view class="post-item" :class="{ 'post-item--creation': showCreationMeta }">
             <view
@@ -77,6 +80,9 @@
         :style="{ backgroundColor: cardBackgroundColor }"
         @tap="emitCardTap"
         @longpress="emitLongpress"
+        <!-- #ifdef H5 -->
+        v-mouse-longpress="emitLongpress"
+        <!-- #endif -->
       >
         <view class="post-item" :class="{ 'post-item--creation': showCreationMeta }">
           <view v-if="post.poemVertical && post.displayContent" class="post-content" :style="{ color: cardTextColor }">
@@ -161,9 +167,74 @@ import { getCreationLabel } from '@/utils/poemCreation.js';
 import { getPoemFontVars } from '@/utils/poemTypography.js';
 import PoemRichText from '@/components/poem/PoemRichText.vue';
 
+// #ifdef H5
+const MOUSE_LONGPRESS_DELAY_MS = 350;
+const MOUSE_LONGPRESS_MOVE_LIMIT = 10;
+const mouseLongpressCleanups = new WeakMap();
+
+// H5 的 uni-app 长按监听触摸，鼠标手势需要原生 PointerEvent。
+const mouseLongpress = {
+  mounted(element, { value: onLongpress }) {
+    let press = null;
+    let skipClick = false;
+    const cancelPress = () => {
+      if (!press) return;
+      clearTimeout(press.timer);
+      press = null;
+    };
+    const listeners = Object.entries({
+      pointerdown(event) {
+        cancelPress();
+        skipClick = false;
+        if (event.pointerType !== 'mouse' || event.button !== 0) return;
+        press = {
+          x: event.clientX,
+          y: event.clientY,
+          timer: setTimeout(() => {
+            press = null;
+            skipClick = true;
+            onLongpress();
+          }, MOUSE_LONGPRESS_DELAY_MS)
+        };
+      },
+      pointermove(event) {
+        if (press && (Math.abs(event.clientX - press.x) > MOUSE_LONGPRESS_MOVE_LIMIT ||
+                      Math.abs(event.clientY - press.y) > MOUSE_LONGPRESS_MOVE_LIMIT)) {
+          cancelPress();
+        }
+      },
+      pointerup: cancelPress,
+      pointercancel: cancelPress,
+      pointerleave: cancelPress,
+      click(event) {
+        if (!skipClick) return;
+        skipClick = false;
+        if (event.detail > 0) event.stopImmediatePropagation();
+      }
+    });
+    for (const [type, listener] of listeners) {
+      element.addEventListener(type, listener, type === 'click');
+    }
+    mouseLongpressCleanups.set(element, () => {
+      cancelPress();
+      for (const [type, listener] of listeners) {
+        element.removeEventListener(type, listener, type === 'click');
+      }
+    });
+  },
+  beforeUnmount(element) {
+    mouseLongpressCleanups.get(element)?.();
+    mouseLongpressCleanups.delete(element);
+  }
+};
+// #endif
+
 export default {
   name: 'PoemCard',
   components: { PoemRichText, PoemCreationMeta },
+  // #ifdef H5
+  directives: { mouseLongpress },
+  // #endif
   emits: [
     'card-tap',
     'vote',

@@ -117,6 +117,23 @@ async function main() {
   await actions.createFavoriteFolder('new', '', context);
   assert.equal(itemsCurrent(), true); assert.equal(foldersCurrent(), false);
 
+  const itemsBeforeReorder = state.captureFavoriteRead();
+  const foldersBeforeReorder = state.captureFavoriteRead(undefined, 'folders');
+  r.respond(async (name, data) => data.action === 'getFavoriteFolders'
+    ? { success: true, folders: [{ _id: 'f1', name: '一', createTime: 20, sortOrder: 1 }, { _id: 'f2', name: '二', createTime: 10, sortOrder: 0 }] }
+    : { success: true, updatedOrder: true });
+  await actions.updateFavoriteFolderOrder(['f2', 'f1'], context);
+  assert.equal(itemsBeforeReorder(), true, 'reordering folders does not invalidate favorite item pages');
+  assert.equal(foldersBeforeReorder(), false, 'reordering folders invalidates stale folder reads');
+  const orderedFolders = await actions.getFavoriteFolders(context);
+  assert.deepEqual(Array.from(orderedFolders).map(f => f._id), ['f2', 'f1']);
+  // 未部署新云函数时本地排序兜底仍生效
+  r.respond(async (name, data) => data.action === 'getFavoriteFolders'
+    ? { success: true, folders: [{ _id: 'f1', name: '一', createTime: 20 }, { _id: 'f2', name: '二', createTime: 10 }] }
+    : { success: true });
+  await actions.updateFavoriteFolderOrder(['f1', 'f2'], context);
+  assert.deepEqual(Array.from(await actions.getFavoriteFolders(context)).map(f => f._id), ['f1', 'f2'], 'unsynced local order keeps custom folder sequence');
+
   // Old reads can settle, but cannot repopulate cache or be displayed by the caller.
   manager.clearAll();
   const oldRead = deferred(); let calls = 0;

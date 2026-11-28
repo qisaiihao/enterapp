@@ -1,6 +1,6 @@
 <template>
     <!-- pages/favorite-folders/favorite-folders.wxml -->
-    <view class="favorite-folders-page" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="favorite-folders-page" :class="{ 'favorite-folders-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 顶部导航栏 -->
         <view class="favorite-folders-header" :style="{ paddingTop: safeAreaTop + 'px' }">
             <dual-action-top-bar
@@ -13,7 +13,7 @@
         </view>
 
         <!-- 收藏夹列表 -->
-        <scroll-view class="folders-list" scroll-y="true">
+        <scroll-view class="folders-list" :scroll-y="true">
             <view class="folders-content">
                 <view v-if="folders.length === 0" class="empty-state">
                     <image class="empty-icon-img" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
@@ -21,7 +21,7 @@
                     <text class="empty-subtext">创建您的第一个收藏夹吧</text>
                 </view>
 
-                <view v-else class="folder-grid">
+                <view v-else class="folder-grid" :class="{ 'folder-grid--two-max': folders.length <= 2 }">
                     <view
                         v-for="(folder, index) in folders"
                         :key="folder._id"
@@ -52,6 +52,39 @@
                                 <view class="folder-info">
                                     <text class="folder-name">{{ folder.name }}</text>
                                     <text class="folder-count">{{ folder.itemCount }} 个收藏</text>
+                                </view>
+                            </view>
+                            <view v-if="isSorting" class="folder-sort-actions">
+                                <view
+                                    class="folder-sort-btn"
+                                    :class="{ disabled: index === 0 }"
+                                    @tap.stop.prevent="moveFolder(index, -1)"
+                                >
+                                    <image
+                                        class="folder-sort-icon"
+                                        :class="{ 'folder-sort-icon--muted': index === 0 }"
+                                        :src="index === 0 ? '/pages-content/static/images/up.png' : '/pages-content/static/images/up_black.png'"
+                                        mode="aspectFit"
+                                    />
+                                </view>
+                                <view
+                                    class="folder-sort-btn"
+                                    :class="{ disabled: index === folders.length - 1 }"
+                                    @tap.stop.prevent="moveFolder(index, 1)"
+                                >
+                                    <image
+                                        class="folder-sort-icon"
+                                        :class="{ 'folder-sort-icon--muted': index === folders.length - 1 }"
+                                        src="/pages-content/static/images/down.png"
+                                        mode="aspectFit"
+                                    />
+                                </view>
+                            </view>
+                            <view class="folder-more-btn" @tap.stop.prevent="openFolderActionMenu(folder)">
+                                <view class="more-menu-dots-small">
+                                    <view class="dot-small"></view>
+                                    <view class="dot-small"></view>
+                                    <view class="dot-small"></view>
                                 </view>
                             </view>
                         </view>
@@ -143,15 +176,26 @@
                 </view>
             </view>
         </AppMotion>
+
+        <!-- 底部操作菜单 -->
+        <AppActionSheet
+            :visible="!!actionMenuFolder"
+            title="收藏夹操作"
+            :items="actionMenuItems"
+            variant="plain"
+            @cancel="closeFolderActionMenu"
+            @select="handleFolderActionSelect"
+        />
     </view>
     <app-overlay-host />
 </template>
 
 <script>
 import AppMotion from '@/components/overlay/AppMotion.vue';
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 // pages/favorite-folders/favorite-folders.js
 import { captureFavoriteRead } from '@/cache/favorites.js';
-import { getFavoriteFolders, createFavoriteFolder, updateFavoriteFolder, deleteFavoriteFolder, addFavorite } from '@/api-cache/favorite-actions.js';
+import { getFavoriteFolders, createFavoriteFolder, updateFavoriteFolder, updateFavoriteFolderOrder, deleteFavoriteFolder, addFavorite } from '@/api-cache/favorite-actions.js';
 import favoriteRefresh from '@/mixins/favoriteRefresh.js';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { readFileAsBase64 } from '@/utils/fileReader.js';
@@ -161,12 +205,15 @@ import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-b
 export default {
     mixins: [favoriteRefresh],
     components: { AppMotion,
+        AppActionSheet,
         dualActionTopBar
     },
     data() {
         return {
             safeAreaTop: 0,
             folders: [],
+            actionMenuFolder: null,
+            isSorting: false,
             isLoading: true,
             showCreateModal: false,
             newFolderName: '',
@@ -183,6 +230,15 @@ export default {
             touchCurrentY: 0,
             isSwipeMode: false
         };
+    },
+    computed: {
+        actionMenuItems() {
+            return this.isSorting ? ['编辑', '完成排序', '删除'] : ['编辑', '排序', '删除'];
+        }
+    },
+    onHide() {
+        this.isSorting = false;
+        this.actionMenuFolder = null;
     },
     async onLoad() {
         console.log('=== 收藏夹列表页面 onLoad ===');
@@ -203,6 +259,9 @@ export default {
         this.loadFolders().catch(() => {});
     },
     methods: {
+        acceptFavoriteChange(event) {
+            return !event || event.source !== 'favorite-folders:reorder';
+        },
         refreshFavoritesAfterChange() {
             if (this._favoriteFoldersReady) return this.loadFolders();
         },
@@ -225,6 +284,16 @@ export default {
             // 如果是滑动模式，不处理点击
             if (this.isSwipeMode) {
                 this.isSwipeMode = false;
+                return;
+            }
+
+            if (this.isSorting) {
+                this.isSorting = false;
+                return;
+            }
+
+            if (folder && (folder.isSwipeOpen || this.folders.some(item => item && item.isSwipeOpen))) {
+                this.closeAllSwipeActions();
                 return;
             }
 
@@ -313,6 +382,7 @@ export default {
 
         // 打开滑动操作
         openSwipeActions(index) {
+            this.isSorting = false;
             const updatedFolders = this.folders.map((folder, i) => {
                 if (i === index) {
                     return { ...folder, isSwipeOpen: true };
@@ -330,6 +400,67 @@ export default {
                 isSwipeOpen: false
             }));
             this.folders = updatedFolders;
+        },
+
+        // 打开收藏夹底部操作菜单
+        openFolderActionMenu(folder) {
+            if (!folder) return;
+            if (this.isSwipeMode) {
+                this.isSwipeMode = false;
+                return;
+            }
+            this.closeAllSwipeActions();
+            const latestFolder = this.folders.find(item => item && item._id === folder._id) || folder;
+            this.actionMenuFolder = latestFolder;
+        },
+
+        // 关闭收藏夹底部操作菜单
+        closeFolderActionMenu() {
+            this.actionMenuFolder = null;
+        },
+
+        // 处理底部操作菜单选择
+        handleFolderActionSelect(index) {
+            const folder = this.actionMenuFolder;
+            this.actionMenuFolder = null;
+            if (!folder) return;
+            if (index === 0) {
+                this.editFolderName(folder);
+            } else if (index === 1) {
+                this.toggleSortMode();
+            } else if (index === 2) {
+                this.deleteFolder(folder);
+            }
+        },
+
+        // 切换排序模式
+        toggleSortMode() {
+            this.closeAllSwipeActions();
+            this.isSorting = !this.isSorting;
+        },
+
+        // 上移/下移收藏夹排序
+        moveFolder(index, direction) {
+            if (this.isSwipeMode) {
+                this.isSwipeMode = false;
+                return;
+            }
+            const list = Array.isArray(this.folders) ? this.folders.slice() : [];
+            const targetIndex = index + direction;
+            if (index < 0 || index >= list.length || targetIndex < 0 || targetIndex >= list.length) {
+                return;
+            }
+            const [moved] = list.splice(index, 1);
+            list.splice(targetIndex, 0, moved);
+            this.folders = list.map((item, idx) => ({
+                ...item,
+                isSwipeOpen: false,
+                sortOrder: idx
+            }));
+            const folderIds = this.folders.map(item => item && item._id).filter(Boolean);
+            return updateFavoriteFolderOrder(folderIds, this, {
+                source: 'favorite-folders:reorder'
+            });
         },
         loadFolders() {
             if (this._folderTask && this._folderTask.current()) return this._folderTask.promise;
@@ -460,12 +591,10 @@ export default {
             // 关闭滑动操作
             this.closeAllSwipeActions();
 
-            this.setData({
-                showEditModal: true,
-                editingFolder: folder,
-                editingFolderName: folder.name,
-                editingFolderCover: folder.coverUrl || ''
-            });
+            this.showEditModal = true;
+            this.editingFolder = folder;
+            this.editingFolderName = folder.name;
+            this.editingFolderCover = folder.coverUrl || '';
         },
 
         // 隐藏编辑弹窗
@@ -634,7 +763,9 @@ export default {
 <style>
 /* pages/favorite-folders/favorite-folders.wxss */
 .favorite-folders-page {
+    height: 100vh;
     min-height: 100vh;
+    box-sizing: border-box;
     background: var(--app-page-bg, #fff);
     color: var(--app-primary-text, #111111);
     display: flex;
@@ -649,8 +780,8 @@ export default {
 
 .folders-list {
     flex: 1;
+    min-height: 0;
     height: 0;
-    overflow: hidden;
 }
 
 .folders-content {
@@ -759,6 +890,7 @@ export default {
 
 .folder-content {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 20rpx;
@@ -789,6 +921,7 @@ export default {
 }
 
 .folder-info {
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 8rpx;
@@ -798,11 +931,79 @@ export default {
     font-size: 32rpx;
     font-weight: 600;
     color: var(--app-primary-text, #333);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .folder-count {
     font-size: 26rpx;
     color: var(--app-secondary-text, #666);
+}
+
+.folder-sort-actions {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+    flex-shrink: 0;
+    margin-right: 4rpx;
+}
+
+.folder-sort-btn {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border-radius: 14rpx;
+}
+
+.folder-sort-btn:not(.disabled):active {
+    background: var(--app-control-press-bg, rgba(0, 0, 0, 0.06));
+}
+
+.folder-sort-icon {
+    display: block;
+    flex-shrink: 0;
+    width: 44rpx;
+    height: 22rpx;
+    transform: translateY(-1rpx);
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
+}
+
+.folder-sort-icon.folder-sort-icon--muted {
+    opacity: 0.32;
+}
+
+.folder-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24rpx 16rpx 24rpx 28rpx;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.folder-more-btn:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+
+.more-menu-dots-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4rpx;
+}
+
+.more-menu-dots-small .dot-small {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background-color: var(--app-post-menu-dot-color, #666);
 }
 
 
@@ -956,6 +1157,7 @@ export default {
     transition: opacity 0.3s ease;
 }
 
+.cover-preview:hover .cover-overlay,
 .cover-preview:active .cover-overlay {
     opacity: 1;
 }
@@ -1001,7 +1203,57 @@ export default {
     color: var(--app-muted-text, #999);
 }
 .modal-btn.confirm:active { opacity: 0.65; }
+
+@media screen and (min-width: 600px) {
+    .folders-content {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 24px calc(32px + var(--app-safe-area-bottom, 0px));
+        box-sizing: border-box;
+    }
+
+    .folder-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .folder-item-wrapper {
+        border-radius: 16px;
+        border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+        background: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+        box-shadow: var(--app-surface-shadow, 0 4px 14px rgba(0, 0, 0, 0.04));
+        overflow: hidden;
+    }
+
+    .folder-item-simple {
+        padding: 18px 14px 18px 18px;
+        border-bottom: none;
+        background-color: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+    }
+}
+
+@media screen and (min-width: 1024px) {
+    .folders-content {
+        max-width: 1080px;
+    }
+
+    .folder-grid:not(.folder-grid--two-max) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .folders-content {
+        padding-top: 16px;
+        padding-bottom: calc(20px + var(--app-safe-area-bottom, 0px));
+    }
+
+    .empty-state {
+        padding: 48rpx 0;
+    }
+}
 </style>
 
-<style src="@/styles/collection-create-dialog.css">.modal-btn.confirm:active { opacity: 0.65; }
-</style>
+<style src="@/styles/collection-create-dialog.css"></style>

@@ -1,6 +1,6 @@
 <template>
-    <view>
-        <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="blocked-users-page" :data-app-theme="appThemeMode" :style="appThemeVars">
+        <view class="container">
             <!-- 顶部导航栏 -->
             <view class="header">
                 <view class="header-left" @tap="goBack">
@@ -9,22 +9,24 @@
                 <text class="header-title">黑名单</text>
             </view>
 
-            <!-- 黑名单列表 -->
-            <relation-user-list
-                :users="displayBlockedUsers"
-                :pending-openid="pendingOpenid"
-                :default-avatar="defaultAvatar"
-                empty-text="黑名单为空，快去屏蔽那些讨厌的用户吧～"
-                action-text="解除屏蔽"
-                action-class="unblock-btn"
-                @user-tap="openUserProfile"
-                @action-tap="onUnblock"
-                @avatar-error="onAvatarError"
-            />
+            <view class="app-readable-column">
+                <!-- 黑名单列表 -->
+                <relation-user-list
+                    :users="displayBlockedUsers"
+                    :pending-openid="pendingOpenid"
+                    :default-avatar="defaultAvatar"
+                    empty-text="黑名单为空，快去屏蔽那些讨厌的用户吧～"
+                    action-text="解除屏蔽"
+                    action-class="unblock-btn"
+                    @user-tap="openUserProfile"
+                    @action-tap="onUnblock"
+                    @avatar-error="onAvatarError"
+                />
 
-            <!-- 底部提示 -->
-            <view v-if="blockedUsers.length > 0" class="footer-hint">
-                <view v-if="!hasMore" class="loading-more">已经到底了</view>
+                <!-- 底部提示 -->
+                <view v-if="blockedUsers.length > 0" class="footer-hint">
+                    <view v-if="!hasMore" class="loading-more">已经到底了</view>
+                </view>
             </view>
         </view>
     </view>

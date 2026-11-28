@@ -1,6 +1,6 @@
 <template>
-    <view>
-        <view class="container">
+    <view class="fans-page" :data-app-theme="appThemeMode" :style="appThemeVars">
+        <view class="container app-readable-column">
             <!-- 分段控制器 -->
             <view class="segmented-control">
                 <!-- 自定义返回按钮 -->
@@ -258,11 +258,18 @@ export default {
     filter: var(--app-icon-filter, none);
 }
 
+.fans-page {
+    background-color: var(--app-page-bg, #fff);
+    min-height: 100vh;
+}
+
 .container {
     background-color: var(--app-page-bg, #fff);
     color: var(--app-primary-text, #111111);
     min-height: 100vh;
-    padding-top: calc(80rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    padding-top: calc(40rpx + var(--app-safe-area-top, env(safe-area-inset-top, 0px)));
+    padding-bottom: calc(32rpx + var(--app-safe-area-bottom, 0px));
+    box-sizing: border-box;
 }
 
 /* 分段控制器 */

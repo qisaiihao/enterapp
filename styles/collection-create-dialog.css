@@ -130,6 +130,11 @@
   .collection-create-dialog .collection-create-panel .collection-create-body {
     max-height: 42vh;
   }
+  .collection-create-dialog .collection-create-panel .cover-upload-btn,
+  .collection-create-dialog .collection-create-panel .cover-preview {
+    width: 148rpx;
+    height: 148rpx;
+  }
   .collection-create-dialog .collection-create-panel .collection-create-footer {
     margin-top: 20rpx;
   }

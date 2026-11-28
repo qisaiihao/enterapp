@@ -1057,10 +1057,22 @@ export default {
                 };
             }
             if (!this._portfolioUpdatedHandler) {
-                this._portfolioUpdatedHandler = () => {
-                    try { invalidatePortfolioCache(); } catch (_) {}
+                this._portfolioUpdatedHandler = (event = {}) => {
+                    try {
+                        if (!event || event.source !== 'portfolio:reorder') {
+                            invalidatePortfolioCache();
+                        }
+                    } catch (_) {}
+                    if (event && Array.isArray(event.folders)) {
+                        this.setData({ portfolioList: event.folders });
+                        if (event.source === 'portfolio:reorder') {
+                            return;
+                        }
+                    }
                     if (this.currentTab === 'portfolio' && this.hasInitialSnapshot) {
                         this.refreshProfileAtomically({ reason: 'portfolio-updated', forceRefresh: true }).catch(() => {});
+                    } else {
+                        this._portfolioDirty = true;
                     }
                 };
             }
@@ -1097,7 +1109,7 @@ export default {
                 this._favoriteChangedHandler = (e = {}) => {
                     const openid = getOpenid();
                     if (e && e.userId === openid) {
-                        if (e.kind === 'folder-created' || e.kind === 'folder-updated') return;
+                        if (e.kind === 'folder-created' || e.kind === 'folder-updated' || e.kind === 'folder-reordered') return;
                         this.favoriteRequestToken = (this.favoriteRequestToken || 0) + 1;
                         this.favoriteLoading = false;
                         this.favoritePage = 0;
@@ -2817,7 +2829,9 @@ export default {
                 this.loadFavorites();
             } else if (tab === 'portfolio') {
                 // 切换到作品集标签页时加载作品集数据
-                this.loadPortfolios();
+                const forcePortfolio = !!this._portfolioDirty;
+                this._portfolioDirty = false;
+                this.loadPortfolios(null, forcePortfolio);
                 // 同时加载时间轴数据
                 if (this.timelinePosts.length === 0 && !this.timelineLoading) {
                     this.loadTimelineData();

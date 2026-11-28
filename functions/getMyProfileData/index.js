@@ -68,6 +68,7 @@ exports.main = async (event, context) => {
   const actionHandlers = {
     getFavoriteFolders: () => favoriteHandlers.getFavoriteFolders(openid),
     createFavoriteFolder: () => favoriteHandlers.createFavoriteFolder(openid, event.folderName, event.coverUrl),
+    updateFavoriteFolderOrder: () => favoriteHandlers.updateFavoriteFolderOrder(openid, event.folderIds),
     addToFavorite: () => favoriteHandlers.addToFavorite(openid, event.postId, event.folderId),
     getFavoritesByFolder: () => favoriteHandlers.getFavoritesByFolder(openid, event.folderId, event.skip || 0, event.limit || 10),
     removeFromFavorite: () => favoriteHandlers.removeFromFavorite(openid, event.favoriteId),

@@ -9,6 +9,9 @@ const { describePoem, loadFeed, handle } = require('../functions/getPoemWidgetFe
 
 cloud.init({ env: 'poem-widget-test' });
 const command = cloud.database().command;
+const widget = load('utils/poemWidget.js', {}, [
+  'normalizeWidgetSettings', 'normalizeWidgetColor', 'getPoemWidgetNextToken', 'getPoemWidgetPostId'
+]);
 
 function samplePost(id, time, fields = {}) {
   return { _id: id, isPoem: true, isOriginal: true, content: '一行诗', createTime: new Date(time), ...fields };
@@ -75,9 +78,7 @@ async function verifyFeed() {
 }
 
 function verifySettings() {
-  const { normalizeWidgetSettings, normalizeWidgetColor, getPoemWidgetNextToken } = load('utils/poemWidget.js', {}, [
-    'normalizeWidgetSettings', 'normalizeWidgetColor', 'getPoemWidgetNextToken'
-  ]);
+  const { normalizeWidgetSettings, normalizeWidgetColor, getPoemWidgetNextToken, getPoemWidgetPostId } = widget;
   const options = normalizeWidgetSettings({
     compact: { source: 'today', palette: 'poem' },
     wide: { source: 'popular', palette: 'custom', backgroundColor: '#fbd', textColor: '0f2845' }
@@ -90,11 +91,122 @@ function verifySettings() {
   const token = 'eda20a10-83dd-43d0-9345-b7bdf96179a2';
   assert.equal(getPoemWidgetNextToken('poementer://poem-widget/next?token=' + token), token);
   assert.equal(getPoemWidgetNextToken('poementer://poem-widget/next?token=' + token + '&other=1'), '');
+  assert.equal(getPoemWidgetPostId('poementer://poem-widget/detail?id=poem-1'), 'poem-1');
+  assert.equal(getPoemWidgetPostId('poem-widget/detail?id=%E8%AF%97%26%2B'), '诗&+');
+  for (const path of [null, 'https://poem-widget/detail?id=a', 'poementer://poem-widget/detail?id=',
+    'poementer://poem-widget/detail?id=%ZZ', 'poementer://poem-widget/detail?id=%0A',
+    'poementer://poem-widget/detail?id=a&id=b', 'poementer://poem-widget/detail?id=a#b',
+    'poementer://poem-widget/next?token=' + token]) {
+    assert.equal(getPoemWidgetPostId(path), '', `Invalid poem detail link: ${path}`);
+  }
+}
+
+function verifyNavigation() {
+  const splashRoute = 'pages/splash/splash';
+  const homeRoute = 'pages/poem-square/poem-square';
+  const setupRoute = 'pages-user/profile-setup/profile-setup';
+  const detailUrl = id => `/pages/post-detail/post-detail?id=${encodeURIComponent(id)}`;
+  const widgetUrl = id => `poementer://poem-widget/detail?id=${encodeURIComponent(id)}`;
+
+  function runtime({ accepted = true, needsSetup = false } = {}) {
+    const calls = [];
+    const nextTokens = [];
+    let newIntent;
+    let pages = [];
+    const plus = {
+      runtime: { arguments: '' },
+      globalEvent: { addEventListener(event, callback) { if (event === 'newintent') newIntent = callback; } }
+    };
+    const uni = {
+      removeStorageSync() {}, showToast() {},
+      navigateTo: options => calls.push({ method: 'navigateTo', options }),
+      reLaunch: options => calls.push({ method: 'reLaunch', options })
+    };
+    const globals = { uni, plus, getCurrentPages: () => pages, hasAcceptedPrivacyConsent: () => accepted };
+    const navigation = load('utils/poemWidgetNavigation.js', globals, ['queuePoemWidgetDetail', 'openPendingPoemWidgetDetail']);
+    const app = load('App.vue', {
+      ...globals, ...widget, ...navigation,
+      installRuntimeBindings() {}, getAppState: () => ({}), markLoginProcessStarted() {}, patchAppState() {},
+      syncDeviceOrientationLock() {}, refreshLayoutSnapshot() {}, unreadBadge: { startPolling() {} },
+      runAfterPrivacyConsent: callback => { if (accepted) callback(); },
+      requestPoemWidgetNext: token => nextTokens.push(token)
+    });
+    const appVm = { appState: {}, $nextTick() {} };
+    for (const [name, method] of Object.entries(app.methods)) appVm[name] = method.bind(appVm);
+    const splash = load('pages/splash/splash.vue', {
+      ...globals, ...navigation, getAppState: () => ({}), needsProfileSetup: () => needsSetup,
+      retainPoemSquarePreload() {}, clearTimeout() {}
+    });
+    const setup = load('pages-user/profile-setup/profile-setup.vue', { ...globals, ...navigation });
+    const splashVm = splash.data();
+    return {
+      calls, nextTokens,
+      acceptPrivacy: () => { accepted = true; },
+      show: (args = plus.runtime.arguments) => { plus.runtime.arguments = args; app.onShow.call(appVm); },
+      launch: args => { plus.runtime.arguments = args; app.onLaunch.call(appVm); },
+      receive: args => { plus.runtime.arguments = args; newIntent(); },
+      setPage: route => { pages = [{ route }]; },
+      enter: () => splash.methods.navigateAfterSplash.call(splashVm),
+      finishSetup: () => setup.methods.leaveForHome(),
+      resolve(method, url) {
+        assert.ok(calls.length, `Expected ${method} ${url}`);
+        const call = calls.shift();
+        assert.equal(call.method, method);
+        assert.equal(call.options.url, url);
+        const target = new URL(url, 'https://example.test');
+        const page = { route: target.pathname.slice(1), $page: { options: { id: target.searchParams.get('id') } } };
+        pages = method === 'reLaunch' ? [page] : [...pages, page];
+        call.options.success?.();
+      }
+    };
+  }
+
+  const cold = runtime({ accepted: false });
+  cold.launch(widgetUrl('poem-1'));
+  cold.setPage(splashRoute);
+  cold.show();
+  assert.equal(cold.calls.length, 0, 'Keep the target while privacy consent is pending');
+  cold.acceptPrivacy();
+  cold.enter();
+  cold.resolve('reLaunch', detailUrl('poem-1'));
+  assert.equal(cold.calls.length, 0);
+
+  cold.setPage(homeRoute);
+  cold.show();
+  assert.equal(cold.calls.length, 0, 'Resuming from the app icon does not replay the old URL');
+  cold.receive(widgetUrl('poem-1'));
+  cold.show();
+  cold.receive(widgetUrl('poem-1'));
+  cold.resolve('navigateTo', detailUrl('poem-1'));
+  assert.equal(cold.calls.length, 0, 'The same detail opens once across overlapping callbacks');
+  cold.show(widgetUrl('诗&+'));
+  cold.resolve('navigateTo', detailUrl('诗&+'));
+
+  const profile = runtime({ needsSetup: true });
+  profile.setPage(splashRoute);
+  profile.launch(widgetUrl('poem-2'));
+  profile.enter();
+  profile.resolve('reLaunch', `/${setupRoute}`);
+  assert.equal(profile.calls.length, 0, 'The setup page keeps the pending widget link');
+  profile.finishSetup();
+  profile.resolve('reLaunch', detailUrl('poem-2'));
+
+  const late = runtime();
+  late.setPage(splashRoute);
+  late.enter();
+  late.show(widgetUrl('poem-3'));
+  late.resolve('reLaunch', `/${homeRoute}`);
+  late.resolve('navigateTo', detailUrl('poem-3'));
+  const token = 'eda20a10-83dd-43d0-9345-b7bdf96179a2';
+  late.receive(`poementer://poem-widget/next?token=${token}`);
+  assert.deepEqual(late.nextTokens, [token]);
+  assert.equal(late.calls.length, 0, 'The legacy next link only changes the widget selection');
 }
 
 verifyFeed().then(() => {
   verifySettings();
-  console.log('Poem widget tests passed: four sources, Shanghai midnight, visibility, attribution, palette, and link validation');
+  verifyNavigation();
+  console.log('Poem widget tests passed: feed, settings, privacy, and cold and warm detail links');
 }).catch(error => {
   console.error(error);
   process.exitCode = 1;

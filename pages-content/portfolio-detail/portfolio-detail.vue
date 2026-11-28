@@ -1,6 +1,6 @@
 <template>
-  <view class="portfolio-detail-page" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
-    <dual-action-top-bar @left-click="goBack" @right-click="openAddModal" />
+  <view class="portfolio-detail-page" :class="{ 'portfolio-detail-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
+    <dual-action-top-bar :title="folderName" @left-click="goBack" @right-click="openAddModal" />
     
     <view class="container">
       <!-- 加载中骨架 -->
@@ -10,65 +10,173 @@
 
       <!-- 内容列表 -->
       <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
-      <view class="content-container">
+      <view class="content-container" :class="{ 'content-container--wide': isWideLayout }">
         <view v-if="postList.length === 0" class="empty-state">
           <view class="empty-text">这里还没有内容</view>
           <view class="empty-subtext">添加你的诗歌吧～</view>
         </view>
 
-        <view v-else id="post-list-container">
-          <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
-            <view 
-            class="post-content-navigator" 
-            :class="{ 'has-vote-section': item.isExpanded }"
-            @tap="togglePostExpansion" 
-            @longpress="onLongPressCard" 
-            :data-index="index" 
-            :data-postid="item._id"
-          >
-              <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
-                  <block v-if="item.isExpanded">
-                    {{ item.displayContent }}
-                  </block>
-                  <block v-else>
-                    <!-- 折叠状态下只显示高光行 -->
-                    <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
-                      <text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
-                    </block>
-                    <block v-else>
-                      {{ item.displayContent }}
-                    </block>
-                  </block>
+        <view v-else id="post-list-container" :class="{ 'post-list-container--single-wide': isSingleWidePoem }">
+          <view v-if="useTwoColumnPoems" class="app-masonry-columns portfolio-poem-masonry">
+            <view class="app-masonry-column">
+              <view
+                v-for="entry in leftColumnPoems"
+                :key="entry.item && (entry.item.portfolioId || entry.item._id) ? (entry.item.portfolioId || entry.item._id) : entry.index"
+                class="post-item-wrapper"
+                :style="{ backgroundColor: entry.item.backgroundColor }"
+              >
+                <view
+                  class="post-content-navigator"
+                  :class="{ 'has-vote-section': entry.item.isExpanded }"
+                  @tap="togglePostExpansion"
+                  @longpress="onLongPressCard"
+                  :data-index="entry.index"
+                  :data-postid="entry.item._id"
+                >
+                  <view class="post-item">
+                    <view :class="'post-content ' + (entry.item.isExpanded ? 'expanded' : 'collapsed') + (!entry.item.isExpanded && (!entry.item.displayHighlightLines || entry.item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="entry.item.displayContent" :style="{ color: entry.item.textColor, whiteSpace: 'pre-wrap' }">
+                      <block v-if="entry.item.isExpanded">
+                        {{ entry.item.displayContent }}
+                      </block>
+                      <block v-else>
+                        <block v-if="entry.item.displayHighlightLines && entry.item.displayHighlightLines.length > 0">
+                          <text v-for="(highlightLine, hIdx) in entry.item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                        </block>
+                        <block v-else>
+                          {{ entry.item.displayContent }}
+                        </block>
+                      </block>
+                    </view>
+
+                    <view v-if="entry.item.isExpanded && entry.item.authorSignature" class="user-signature">
+                      <image class="signature-image" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+
+                    <view v-if="!entry.item.isExpanded && entry.item.authorSignature" class="user-signature-small">
+                      <image class="signature-image-small" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+                  </view>
                 </view>
 
-                <!-- 作者签名 - 展开时显示大签名 -->
-                <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
-                  <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
-                </view>
-
-                <!-- 作者签名 - 折叠时显示小签名 -->
-                <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
-                  <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                <view class="vote-section" v-if="entry.item.isExpanded" :style="{ backgroundColor: entry.item.backgroundColor }">
+                  <view class="actions-left"></view>
+                  <view class="button-group">
+                    <view class="delete-icon-container" @tap.stop.prevent="onDeleteFromPortfolio" :data-portfolioid="entry.item.portfolioId" :data-index="entry.index">
+                      <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit" />
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>
 
-            <!-- 交互区（展开时显示） -->
-            <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
-              <view class="actions-left"><!-- 预留左侧空间 --></view>
-              <view class="button-group">
-                <view class="delete-icon-container" @tap.stop.prevent="onDeleteFromPortfolio" :data-portfolioid="item.portfolioId" :data-index="index">
-                  <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit" />
+            <view class="app-masonry-column">
+              <view
+                v-for="entry in rightColumnPoems"
+                :key="entry.item && (entry.item.portfolioId || entry.item._id) ? (entry.item.portfolioId || entry.item._id) : entry.index"
+                class="post-item-wrapper"
+                :style="{ backgroundColor: entry.item.backgroundColor }"
+              >
+                <view
+                  class="post-content-navigator"
+                  :class="{ 'has-vote-section': entry.item.isExpanded }"
+                  @tap="togglePostExpansion"
+                  @longpress="onLongPressCard"
+                  :data-index="entry.index"
+                  :data-postid="entry.item._id"
+                >
+                  <view class="post-item">
+                    <view :class="'post-content ' + (entry.item.isExpanded ? 'expanded' : 'collapsed') + (!entry.item.isExpanded && (!entry.item.displayHighlightLines || entry.item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="entry.item.displayContent" :style="{ color: entry.item.textColor, whiteSpace: 'pre-wrap' }">
+                      <block v-if="entry.item.isExpanded">
+                        {{ entry.item.displayContent }}
+                      </block>
+                      <block v-else>
+                        <block v-if="entry.item.displayHighlightLines && entry.item.displayHighlightLines.length > 0">
+                          <text v-for="(highlightLine, hIdx) in entry.item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                        </block>
+                        <block v-else>
+                          {{ entry.item.displayContent }}
+                        </block>
+                      </block>
+                    </view>
+
+                    <view v-if="entry.item.isExpanded && entry.item.authorSignature" class="user-signature">
+                      <image class="signature-image" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+
+                    <view v-if="!entry.item.isExpanded && entry.item.authorSignature" class="user-signature-small">
+                      <image class="signature-image-small" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+                  </view>
+                </view>
+
+                <view class="vote-section" v-if="entry.item.isExpanded" :style="{ backgroundColor: entry.item.backgroundColor }">
+                  <view class="actions-left"></view>
+                  <view class="button-group">
+                    <view class="delete-icon-container" @tap.stop.prevent="onDeleteFromPortfolio" :data-portfolioid="entry.item.portfolioId" :data-index="entry.index">
+                      <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit" />
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>
           </view>
+
+          <block v-else>
+            <view v-for="(item, index) in postList" :key="item && (item.portfolioId || item._id) ? (item.portfolioId || item._id) : index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+              <view 
+              class="post-content-navigator" 
+              :class="{ 'has-vote-section': item.isExpanded }"
+              @tap="togglePostExpansion" 
+              @longpress="onLongPressCard" 
+              :data-index="index" 
+              :data-postid="item._id"
+            >
+                <view class="post-item">
+                  <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+                    <block v-if="item.isExpanded">
+                      {{ item.displayContent }}
+                    </block>
+                    <block v-else>
+                      <!-- 折叠状态下只显示高光行 -->
+                      <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
+                        <text v-for="(highlightLine, hIdx) in item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                      </block>
+                      <block v-else>
+                        {{ item.displayContent }}
+                      </block>
+                    </block>
+                  </view>
+
+                  <!-- 作者签名 - 展开时显示大签名 -->
+                  <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
+                    <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  </view>
+
+                  <!-- 作者签名 - 折叠时显示小签名 -->
+                  <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
+                    <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 交互区（展开时显示） -->
+              <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
+                <view class="actions-left"><!-- 预留左侧空间 --></view>
+                <view class="button-group">
+                  <view class="delete-icon-container" @tap.stop.prevent="onDeleteFromPortfolio" :data-portfolioid="item.portfolioId" :data-index="index">
+                    <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit" />
+                  </view>
+                </view>
+              </view>
+            </view>
+          </block>
         </view>
 
         <!-- 底部加载/结束提示 -->
         <view class="loading-footer">
-          <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+          <text v-if="isLoadingMore" class="loading-footer-text">加载中...</text>
+          <text v-else-if="hasMore && postList.length > 0" class="loading-footer-action" @tap="loadMore">加载更多</text>
+          <text v-else-if="!hasMore && postList.length > 0">—— 到底啦 ——</text>
         </view>
       </view>
     </scroll-view>
@@ -94,7 +202,7 @@
               <view v-else-if="myPosts.length === 0" class="empty-small">
                 <text>暂无原创诗歌</text>
               </view>
-              <view v-else class="posts-list-simple">
+              <view v-else class="posts-list-simple" :class="{ 'posts-list-simple--grid': myPosts.length > 1 }">
                 <poem-selection-item
                   v-for="post in myPosts"
                   :key="post._id"
@@ -141,10 +249,6 @@ export default {
     skeleton,
     dualActionTopBar
   },
-  
-  onUnload() {
-    try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
-  },
   data() {
     return {
       postList: [],
@@ -156,6 +260,8 @@ export default {
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
       votingInProgress: {},
+      viewportFillTimer: null,
+      viewportAutoFillCount: 0,
       // portfolio-detail 特有属性
       folderId: '',
       folderName: '',
@@ -167,6 +273,41 @@ export default {
       // 当前作品集内已有的帖子ID（用于过滤批量添加列表，避免重复）
       existingPostIds: []
     };
+  },
+  computed: {
+    useTwoColumnPoems() {
+      return !!(this.appLayout && this.appLayout.poemColumns >= 2 && Array.isArray(this.postList) && this.postList.length > 1);
+    },
+    isSingleWidePoem() {
+      return !!(this.appLayout && this.appLayout.poemColumns >= 2 && Array.isArray(this.postList) && this.postList.length === 1);
+    },
+    viewportFillWatchKey() {
+      const layout = this.appLayout || {};
+      return `${layout.poemColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
+    },
+    leftColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 0; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    },
+    rightColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 1; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    }
+  },
+  watch: {
+    viewportFillWatchKey() {
+      if (!this.isLoading && !this.isLoadingMore && this.hasMore && Array.isArray(this.postList) && this.postList.length > 0) {
+        this.scheduleViewportFillCheck({ resetCounter: true });
+      }
+    }
   },
   onLoad(options) {
     // 注册全局点赞事件
@@ -182,8 +323,12 @@ export default {
     try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
   },
   onUnload() {
+    this.clearPortfolioTimers();
     // 取消全局点赞事件监听
     try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+  },
+  beforeUnmount() {
+    this.clearPortfolioTimers();
   },
   onPullDownRefresh() {
     console.log('【portfolio-detail】📱 下拉刷新，重新获取数据');
@@ -212,11 +357,70 @@ export default {
     }, 100);
   },
   methods: {
+    clearPortfolioTimers() {
+      if (this._scrollTimer) {
+        clearTimeout(this._scrollTimer);
+        this._scrollTimer = null;
+      }
+      if (this.viewportFillTimer) {
+        clearTimeout(this.viewportFillTimer);
+        this.viewportFillTimer = null;
+      }
+    },
+    scheduleViewportFillCheck({ resetCounter = false } = {}) {
+      if (resetCounter) {
+        this.viewportAutoFillCount = 0;
+      }
+      if (this.viewportFillTimer) {
+        clearTimeout(this.viewportFillTimer);
+        this.viewportFillTimer = null;
+      }
+      if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if (this.viewportAutoFillCount >= 3) return;
+
+      this.$nextTick(() => {
+        this.viewportFillTimer = setTimeout(() => {
+          this.viewportFillTimer = null;
+          this.checkViewportFill();
+        }, 120);
+      });
+    },
+    checkViewportFill() {
+      if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if (this.viewportAutoFillCount >= 3) return;
+
+      try {
+        uni.createSelectorQuery()
+          .in(this)
+          .select('.content-scroll')
+          .boundingClientRect()
+          .select('#post-list-container')
+          .boundingClientRect()
+          .exec((res) => {
+            const scrollRect = Array.isArray(res) ? res[0] : null;
+            const listRect = Array.isArray(res) ? res[1] : null;
+            if (!listRect || !listRect.height) return;
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            const winH = (this.appLayout && Number(this.appLayout.windowHeight)) || 0;
+            const viewportBottom = scrollRect && Number.isFinite(scrollRect.bottom) && scrollRect.height > 0
+              ? scrollRect.bottom
+              : winH;
+            const listBottom = Number.isFinite(listRect.bottom) ? listRect.bottom : ((listRect.top || 0) + listRect.height);
+            if (viewportBottom > 0 && listBottom <= viewportBottom + 80) {
+              this.viewportAutoFillCount += 1;
+              this.getPostList();
+            }
+          });
+      } catch (_) {}
+    },
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'portfolio-detail', context: this, requireAuth: true }, extraOptions));
     },
     getIndexData(callback) {
       console.log('【portfolio-detail】开始获取数据，callback:', typeof callback);
+      this.viewportAutoFillCount = 0;
       this.setData({
         isLoading: true, 
         postList: [], 
@@ -226,6 +430,7 @@ export default {
       this.getPostList(() => { 
         console.log('【portfolio-detail】getPostList 完成，设置 isLoading: false');
         this.setData({ isLoading: false });
+        this.scheduleViewportFillCheck({ resetCounter: true });
         if (typeof callback === 'function') {
           console.log('【portfolio-detail】执行回调函数');
           callback();
@@ -305,6 +510,9 @@ export default {
       } finally {
         console.log('【portfolio-detail】设置 isLoadingMore: false，执行回调');
         this.setData({ isLoadingMore: false });
+        if (this.hasMore && !this.isLoading && Array.isArray(this.postList) && this.postList.length > 0) {
+          this.scheduleViewportFillCheck();
+        }
         if (typeof cb === 'function') {
           console.log('【portfolio-detail】执行回调函数');
           cb();
@@ -704,13 +912,11 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  /* #ifdef APP-PLUS */
-  padding-top: var(--status-bar-height);
-  /* #endif */
 }
 
 .portfolio-detail-page .container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -724,12 +930,32 @@ export default {
   width: 100%;
   box-sizing: border-box;
   padding: 100rpx; /* 与 poem-square 保持一致的左右边距 */
-  padding-top: 240rpx; /* 增加顶部留白，避免与更多按钮重叠 */
-  padding-bottom: 32rpx;
-  margin-bottom: 200rpx; /* 与 poem-square 保持一致的底部边距 */
+  padding-top: calc(var(--app-safe-area-top, 0px) + 150rpx); /* 避让顶部双动作栏 */
+  padding-bottom: calc(64rpx + var(--app-safe-area-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: stretch; /* 让卡片撑满容器 */
+}
+
+.portfolio-detail-page .content-container--wide {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: calc(var(--app-safe-area-top, 0px) + 76px);
+  padding-left: calc(24px + var(--app-safe-area-left, 0px));
+  padding-right: calc(24px + var(--app-safe-area-right, 0px));
+  padding-bottom: calc(36px + var(--app-safe-area-bottom, 0px));
+}
+
+.post-list-container--single-wide {
+  max-width: 640px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.portfolio-poem-masonry .post-item-wrapper {
+  margin-bottom: 20px;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
@@ -857,6 +1083,19 @@ export default {
   padding: 40rpx 0 60rpx; 
   font-size: 28rpx;
 }
+.loading-footer-text {
+  font-size: 26rpx;
+  color: var(--app-muted-text, #999);
+}
+.loading-footer-action {
+  display: inline-block;
+  padding: 12rpx 32rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: var(--app-secondary-text, #666);
+  background: var(--app-subtle-surface-bg, #f2f2f2);
+  cursor: pointer;
+}
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 
@@ -901,8 +1140,32 @@ export default {
   gap: 12rpx;
 }
 
+@media screen and (min-width: 600px) {
+  .bulk-add-dialog .collection-create-panel {
+    max-width: 640px;
+  }
+
+  .bulk-add-dialog .posts-list-simple--grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media screen and (min-width: 840px) {
+  .bulk-add-dialog .collection-create-panel {
+    max-width: 720px;
+  }
+}
+
 /* 横屏或可视高度较小时，留出足够空间滚动和点选作品。 */
-@media (max-height: 480px) {
+@media (max-height: 500px) {
+  .portfolio-detail-page .content-container {
+    padding-top: calc(var(--app-safe-area-top, 0px) + 64px);
+  }
+  .empty-state {
+    padding: 48rpx 0;
+  }
   .bulk-add-dialog { padding: 16px; }
   .bulk-add-dialog .collection-create-panel { padding: 20rpx; }
   .bulk-add-dialog .collection-create-header { margin-bottom: 12rpx; }

@@ -2,7 +2,8 @@
 // #ifdef APP-PLUS
 import { checkAndUpdate } from '@/utils/appUpdate.js';
 import { requestPoemWidgetNext } from '@/uni_modules/poem-widget';
-import { getPoemWidgetNextToken } from '@/utils/poemWidget.js';
+import { getPoemWidgetNextToken, getPoemWidgetPostId } from '@/utils/poemWidget.js';
+import { queuePoemWidgetDetail } from '@/utils/poemWidgetNavigation.js';
 import { refreshLayoutSnapshot, syncDeviceOrientationLock } from '@/utils/layout.js';
 // #endif
 // #ifdef APP-PLUS || H5
@@ -70,7 +71,7 @@ export default {
 
             if (!this._newintentListenerAdded && plusInstance.globalEvent && plusInstance.globalEvent.addEventListener) {
                 plusInstance.globalEvent.addEventListener('newintent', () => {
-                    this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
+                    this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance), true);
                 });
                 this._newintentListenerAdded = true;
             }
@@ -179,8 +180,18 @@ export default {
             }
         },
 
-        dispatchNativeUrlScheme(args) {
+        dispatchNativeUrlScheme(args, fromNewIntent = false) {
             // #ifdef APP-PLUS
+            const postId = getPoemWidgetPostId(args);
+            if (postId) {
+                // onShow 可能带上上次的启动参数，newintent 允许再次点击同一首诗。
+                if (fromNewIntent || this._lastPoemWidgetDetailArgs !== args) {
+                    this._lastPoemWidgetDetailArgs = args;
+                    queuePoemWidgetDetail(postId);
+                }
+                return;
+            }
+            this._lastPoemWidgetDetailArgs = '';
             if (typeof args !== 'string' || !args) return;
             if (args.includes('github-callback')) {
                 runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));

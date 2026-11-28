@@ -1036,6 +1036,7 @@ export default {
     transition: opacity 0.3s ease;
 }
 
+.cover-preview:hover .cover-overlay,
 .cover-preview:active .cover-overlay {
     opacity: 1;
 }
@@ -1058,6 +1059,14 @@ export default {
 .collection-create { width: 100%; min-height: 116rpx; margin: 0; padding: 26rpx 32rpx; box-sizing: border-box; border-radius: 0; background: transparent; color: var(--overlay-text); font-size: 30rpx; line-height: 1.4; display: flex; align-items: center; justify-content: center; }
 .collection-create::after { border: none; }
 .collection-create:active, .collection-sheet .portfolio-item:active { opacity: 0.65; }
+
+@media screen and (max-height: 500px) {
+    .collection-sheet .portfolio-item,
+    .collection-create {
+        min-height: 88rpx;
+        padding: 16rpx 28rpx;
+    }
+}
 </style>
 
 <style src="@/styles/collection-create-dialog.css"></style>

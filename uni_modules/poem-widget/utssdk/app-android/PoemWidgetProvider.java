@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.view.View;
 import android.widget.RemoteViews;
 import org.json.JSONObject;
@@ -69,6 +70,7 @@ public abstract class PoemWidgetProvider extends AppWidgetProvider {
         boolean wide = PoemWidgetStore.WIDE.equals(size);
         RemoteViews views = new RemoteViews(context.getPackageName(),
             wide ? R.layout.poem_widget_wide : R.layout.poem_widget_compact);
+        views.setOnClickPendingIntent(R.id.poem_widget_root, openPoemIntent(context, poem));
         views.setInt(R.id.poem_widget_surface, "setColorFilter", background);
         views.setTextColor(R.id.poem_widget_excerpt, foreground);
         views.setTextViewText(R.id.poem_widget_excerpt, poem == null ? emptyText(source, state, now) : poem.optString("excerpt"));
@@ -84,6 +86,16 @@ public abstract class PoemWidgetProvider extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         }
         AppWidgetManager.getInstance(context).updateAppWidget(component(context, size), views);
+    }
+
+    private static PendingIntent openPoemIntent(Context context, JSONObject poem) {
+        String postId = poem == null ? "" : poem.optString("id");
+        if (postId.isEmpty()) return null;
+        Uri url = new Uri.Builder().scheme("poementer").authority("poem-widget")
+            .appendPath("detail").appendQueryParameter("id", postId).build();
+        Intent intent = new Intent(Intent.ACTION_VIEW, url).setPackage(context.getPackageName())
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
     }
 
     private static String attribution(JSONObject poem) {

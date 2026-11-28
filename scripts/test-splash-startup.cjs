@@ -12,8 +12,8 @@ function load(file, globals = {}, exports = []) {
   const imports = {};
   for (const node of parse(source, { sourceType: 'module' }).program.body.reverse()) {
     if (node.type === 'ImportDeclaration') {
-      if (node.source.value === '@/utils/postVisibility.js') {
-        Object.assign(imports, load('utils/postVisibility.js', globals, node.specifiers.map(spec => spec.imported.name)));
+      if (['@/utils/postVisibility.js', '@/utils/poemWidgetNavigation.js'].includes(node.source.value)) {
+        Object.assign(imports, load(node.source.value.slice(2), globals, node.specifiers.map(spec => spec.imported.name)));
       } else {
         node.specifiers.forEach(spec => { imports[spec.local.name] = {}; });
       }

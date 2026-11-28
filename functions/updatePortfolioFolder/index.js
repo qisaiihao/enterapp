@@ -2,13 +2,92 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+function hasValidSortOrder(folder) {
+  return folder && typeof folder.sortOrder === 'number' && Number.isFinite(folder.sortOrder);
+}
+
+function getFolderTimestamp(folder) {
+  if (!folder || !folder.createTime) return 0;
+  const ts = new Date(folder.createTime).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function sortFoldersByOrder(folders = []) {
+  return folders.slice().sort((a, b) => {
+    const aHas = hasValidSortOrder(a);
+    const bHas = hasValidSortOrder(b);
+    if (aHas && bHas) {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return getFolderTimestamp(b) - getFolderTimestamp(a);
+    }
+    if (!aHas && bHas) return -1;
+    if (aHas && !bHas) return 1;
+    return getFolderTimestamp(b) - getFolderTimestamp(a);
+  });
+}
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
-  const { folderId, name, coverUrl } = event;
+  const { folderId, name, coverUrl, action, folderIds } = event;
 
   if (!openid) {
     return { success: false, message: '用户未登录' };
+  }
+
+  if (action === 'updateOrder') {
+    const requestedIds = Array.isArray(folderIds)
+      ? folderIds.map(id => String(id || '').trim()).filter(Boolean)
+      : [];
+    if (requestedIds.length === 0) {
+      return { success: false, message: '排序列表不能为空' };
+    }
+
+    try {
+      const existing = await db.collection('portfolio_folders').where({
+        _openid: openid
+      }).get();
+      const allOwned = existing.data || [];
+      const ownedMap = new Map(allOwned.map(item => [item._id, item]));
+      const orderedIds = [];
+      const seen = new Set();
+
+      for (const id of requestedIds) {
+        if (ownedMap.has(id) && !seen.has(id)) {
+          seen.add(id);
+          orderedIds.push(id);
+        }
+      }
+
+      const remaining = sortFoldersByOrder(allOwned.filter(item => item && !seen.has(item._id)));
+      for (const item of remaining) {
+        orderedIds.push(item._id);
+      }
+
+      const now = new Date();
+      await Promise.all(orderedIds.map((id, index) =>
+        db.collection('portfolio_folders').doc(id).update({
+          data: {
+            sortOrder: index,
+            updateTime: now
+          }
+        })
+      ));
+
+      return {
+        success: true,
+        updatedOrder: true,
+        updatedCount: orderedIds.length,
+        message: '作品集排序已更新'
+      };
+    } catch (error) {
+      console.error('【updatePortfolioFolder云函数】更新作品集排序失败:', error);
+      return {
+        success: false,
+        message: '更新作品集排序失败',
+        error: error.message
+      };
+    }
   }
 
   if (!folderId) {

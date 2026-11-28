@@ -8,6 +8,30 @@ cloud.init({
 const db = cloud.database();
 const _ = db.command;
 
+function hasValidSortOrder(folder) {
+  return folder && typeof folder.sortOrder === 'number' && Number.isFinite(folder.sortOrder);
+}
+
+function getFolderTimestamp(folder) {
+  if (!folder || !folder.createTime) return 0;
+  const ts = new Date(folder.createTime).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function sortFoldersByOrder(folders = []) {
+  return folders.slice().sort((a, b) => {
+    const aHas = hasValidSortOrder(a);
+    const bHas = hasValidSortOrder(b);
+    if (aHas && bHas) {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return getFolderTimestamp(b) - getFolderTimestamp(a);
+    }
+    if (!aHas && bHas) return -1;
+    if (aHas && !bHas) return 1;
+    return getFolderTimestamp(b) - getFolderTimestamp(a);
+  });
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -34,16 +58,15 @@ exports.main = async (event, context) => {
       _openid: openid
     });
 
-    // 执行查询
+    // 执行查询并按自定义排序切分分页
     const result = await query
       .orderBy('createTime', 'desc')
-      .skip(skip)
-      .limit(limit)
+      .limit(100)
       .get();
 
-    console.log('【getPortfolios】查询结果，数量:', result.data.length);
-
-    let portfolios = result.data;
+    const sortedAll = sortFoldersByOrder(result.data || []);
+    let portfolios = sortedAll.slice(skip, skip + limit);
+    console.log('【getPortfolios】查询结果，数量:', portfolios.length);
 
     // 如果需要包含作品数量统计
     if (includeItemCount) {

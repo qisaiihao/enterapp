@@ -49,6 +49,9 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import { getAppState, patchAppState, setUserSession } from '@/utils/app-state.js';
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 import { uploadFileCompat } from '@/utils/upload-compat.js';
+// #ifdef APP-PLUS
+import { openPendingPoemWidgetDetail } from '@/utils/poemWidgetNavigation.js';
+// #endif
 
 const HOME_PAGE = '/pages/poem-square/poem-square';
 const MAX_NICKNAME_LENGTH = 30;
@@ -188,8 +191,15 @@ export default {
             } catch (error) {}
         },
         leaveForHome() {
+            // #ifdef APP-PLUS
+            const onFail = () => uni.showToast({ title: '诗歌详情打开失败，请重试', icon: 'none' });
+            if (openPendingPoemWidgetDetail({ replaceStartup: true, onFail })) return;
+            // #endif
             uni.reLaunch({
                 url: HOME_PAGE,
+                // #ifdef APP-PLUS
+                success: () => { openPendingPoemWidgetDetail(); },
+                // #endif
                 fail: () => {
                     uni.switchTab({ url: HOME_PAGE });
                 }

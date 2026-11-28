@@ -315,14 +315,109 @@ function testMultiImageSwiperGestureIsolation() {
   assert.ok(indexSrc.includes('onInnerSwiperTouchChange'), '首页须响应 inner-swiper-touch-change');
 }
 
+function testScrollViewFlexPagesHaveDefiniteHeight() {
+  const flexScrollPages = [
+    {
+      file: 'pages-content/portfolio/portfolio.vue',
+      rootClass: '.portfolio-page',
+      scrollClass: '.portfolio-list'
+    },
+    {
+      file: 'pages-content/favorite-folders/favorite-folders.vue',
+      rootClass: '.favorite-folders-page',
+      scrollClass: '.folders-list'
+    },
+    {
+      file: 'pages-content/portfolio-detail/portfolio-detail.vue',
+      rootClass: '.portfolio-detail-page',
+      scrollClass: '.content-scroll'
+    },
+    {
+      file: 'pages-content/other-portfolio/other-portfolio.vue',
+      rootClass: '.other-portfolio-page',
+      scrollClass: '.content-scroll'
+    }
+  ];
+
+  for (const { file, rootClass, scrollClass } of flexScrollPages) {
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const escapedRoot = rootClass.replace('.', '\\.');
+    const rootRuleMatch = src.match(new RegExp(`${escapedRoot}\\s*\\{([\\s\\S]*?)\\}`));
+    assert.ok(rootRuleMatch, `${file} 须定义 ${rootClass} 容器样式`);
+    assert.match(
+      rootRuleMatch[1],
+      /(?:^|[\s;])height:\s*100vh\s*;/,
+      `${file} 的 ${rootClass} 须声明确定的 height: 100vh，避免 iOS WebKit 下内部 scroll-view (height: 100% + height: 0) 塌缩为 0px 白屏`
+    );
+    const escapedScroll = scrollClass.replace('.', '\\.');
+    const scrollRuleMatch = src.match(new RegExp(`${escapedScroll}\\s*\\{([\\s\\S]*?)\\}`));
+    assert.ok(scrollRuleMatch, `${file} 须定义 ${scrollClass} 滚动区样式`);
+    assert.match(scrollRuleMatch[1], /flex:\s*1\s*;/);
+  }
+}
+
+function testCollectionAndSecondaryPagesWideAdaptation() {
+  for (const rel of [
+    'pages-content/portfolio/portfolio.vue',
+    'pages-content/favorite-folders/favorite-folders.vue'
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.ok(src.includes('folder-grid--two-max'), `${rel} 须支持 <=2 文件夹双列上限与多文件夹三列响应式切换`);
+    assert.match(src, /@media\s+screen\s+and\s+\(min-width:\s*600px\)[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/, `${rel} 宽屏须切换双列卡片网格`);
+    assert.match(src, /@media\s+screen\s+and\s+\(min-width:\s*1024px\)[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/, `${rel} 大屏须支持三列卡片网格`);
+  }
+
+  for (const rel of [
+    'pages-content/portfolio-detail/portfolio-detail.vue',
+    'pages-content/other-portfolio/other-portfolio.vue'
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.ok(src.includes('useTwoColumnPoems'), `${rel} 须在宽屏多首作品时启用双列瀑布流`);
+    assert.ok(src.includes('app-masonry-columns portfolio-poem-masonry'), `${rel} 须复用 app-masonry-columns 双列瀑布流结构`);
+    assert.ok(src.includes('post-list-container--single-wide'), `${rel} 单首作品在宽屏下须居中收敛`);
+    assert.ok(src.includes('checkViewportFill('), `${rel} 须在宽屏双列不满屏时自动补载下一页`);
+    assert.equal(/width:\s*100vw/.test(src), false, `${rel} 不得使用 100vw 导致桌面端横向滚动条溢出`);
+  }
+
+  const portfolioDetailSrc = fs.readFileSync(path.join(ROOT, 'pages-content/portfolio-detail/portfolio-detail.vue'), 'utf8');
+  assert.ok(portfolioDetailSrc.includes('posts-list-simple--grid'), 'portfolio-detail 批量添加弹窗须在宽屏支持双列网格');
+
+  for (const [rel, masonryHook] of [
+    ['pages-content/favorite-content/favorite-content.vue', 'useTwoColumnFavorites'],
+    ['pages-user/my-likes/my-likes.vue', 'useTwoColumnLikes']
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.ok(src.includes(masonryHook), `${rel} 须在宽屏启用双列帖子瀑布流`);
+    assert.ok(src.includes('app-masonry-columns'), `${rel} 须使用 app-masonry-columns 容器`);
+    assert.ok(src.includes('checkViewportFill('), `${rel} 须在宽屏不满屏时自动补载下一页`);
+  }
+
+  const rootClassPairs = [
+    ['pages-content/favorite-content/favorite-content.vue', 'favorite-content-page'],
+    ['pages-content/draft-box/draft-box.vue', 'draft-box-page'],
+    ['pages-user/my-likes/my-likes.vue', 'my-likes-page'],
+    ['pages-user/following/following.vue', 'following-page'],
+    ['pages-user/fans/fans.vue', 'fans-page'],
+    ['pages-user/blocked-users/blocked-users.vue', 'blocked-users-page']
+  ];
+  const responsiveCss = fs.readFileSync(path.join(ROOT, 'styles/responsive-layout.css'), 'utf8');
+  for (const [rel, cls] of rootClassPairs) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.ok(src.includes(cls), `${rel} 须挂载 ${cls} 根类名以接入全站安全区收敛规则`);
+    assert.ok(responsiveCss.includes(`.${cls}`), `responsive-layout.css 须包含 .${cls}`);
+  }
+}
+
 async function main() {
   testConfigIntegrity();
   testNoSafeAreaTimesTwoInCorePages();
   testAspectRatioWrapperSwiperFillsContainer();
   testMultiImageSwiperGestureIsolation();
+  testScrollViewFlexPagesHaveDefiniteHeight();
+  testCollectionAndSecondaryPagesWideAdaptation();
   testLayoutBreakpointsAndRpx();
   await testPostGalleryRecalculatesOnResize();
-  console.log('[test-layout-responsive] PASS: config, breakpoints, rpxToPx, safe-area vars, resize broadcast & gallery recalc');
+  console.log('[test-layout-responsive] PASS: config, breakpoints, rpxToPx, safe-area vars, resize broadcast, collection/secondary wide layouts & gallery recalc');
 }
 
 main().catch((error) => {

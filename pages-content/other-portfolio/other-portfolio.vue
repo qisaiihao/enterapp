@@ -1,73 +1,185 @@
 <template>
-  <view class="other-portfolio-page" :style="readFontVars" @touchstart="touchStart" @touchend="touchEnd">
-    <!-- 自定义返回按钮 -->
-    <view class="custom-back-btn" @tap="goBack">
-      <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
-    </view>
+  <view class="other-portfolio-page" :class="{ 'other-portfolio-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
+    <!-- 顶部栏 -->
+    <dual-action-top-bar :title="folderName" :show-right="false" @left-click="goBack" />
     
     <view class="container">
       <!-- 加载中骨架 -->
-      <view v-if="isLoading">
+      <view v-if="isLoading && postList.length === 0">
         <skeleton />
       </view>
 
       <!-- 内容列表 -->
       <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
-      <view class="content-container">
+      <view class="content-container" :class="{ 'content-container--wide': isWideLayout }">
         <view v-if="postList.length === 0" class="empty-state">
           <view class="empty-text">这里还没有内容</view>
           <view class="empty-subtext">作者还没有添加任何作品</view>
         </view>
 
-        <view v-else id="post-list-container">
-          <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
-            <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
-              <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
-                  <block v-if="item.isExpanded">
-                    {{ item.displayContent }}
-                  </block>
-                  <block v-else>
-                    <!-- 折叠状态下只显示高光行 -->
-                    <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
-                      <text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
-                    </block>
-                    <block v-else>
-                      {{ item.displayContent }}
-                    </block>
-                  </block>
+        <view v-else id="post-list-container" :class="{ 'post-list-container--single-wide': isSingleWidePoem }">
+          <view v-if="useTwoColumnPoems" class="app-masonry-columns portfolio-poem-masonry">
+            <view class="app-masonry-column">
+              <view
+                v-for="entry in leftColumnPoems"
+                :key="entry.item && (entry.item.portfolioId || entry.item._id) ? (entry.item.portfolioId || entry.item._id) : entry.index"
+                class="post-item-wrapper"
+                :style="{ backgroundColor: entry.item.backgroundColor }"
+              >
+                <view
+                  class="post-content-navigator"
+                  :class="{ 'has-vote-section': entry.item.isExpanded }"
+                  @tap="togglePostExpansion"
+                  @longpress="onLongPressCard"
+                  :data-index="entry.index"
+                  :data-postid="entry.item._id"
+                >
+                  <view class="post-item">
+                    <view :class="'post-content ' + (entry.item.isExpanded ? 'expanded' : 'collapsed') + (!entry.item.isExpanded && (!entry.item.displayHighlightLines || entry.item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="entry.item.displayContent" :style="{ color: entry.item.textColor, whiteSpace: 'pre-wrap' }">
+                      <block v-if="entry.item.isExpanded">
+                        {{ entry.item.displayContent }}
+                      </block>
+                      <block v-else>
+                        <block v-if="entry.item.displayHighlightLines && entry.item.displayHighlightLines.length > 0">
+                          <text v-for="(highlightLine, hIdx) in entry.item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                        </block>
+                        <block v-else>
+                          {{ entry.item.displayContent }}
+                        </block>
+                      </block>
+                    </view>
+
+                    <view v-if="entry.item.isExpanded && entry.item.authorSignature" class="user-signature">
+                      <image class="signature-image" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+
+                    <view v-if="!entry.item.isExpanded && entry.item.authorSignature" class="user-signature-small">
+                      <image class="signature-image-small" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+                  </view>
                 </view>
 
-                <!-- 作者签名 - 展开时显示大签名 -->
-                <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
-                  <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
-                </view>
-
-                <!-- 作者签名 - 折叠时显示小签名 -->
-                <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
-                  <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                <view class="vote-section" v-if="entry.item.isExpanded" :style="{ backgroundColor: entry.item.backgroundColor }">
+                  <view class="actions-left"></view>
+                  <view class="button-group">
+                    <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="entry.item._id" :data-index="entry.index">
+                      <image :class="['like-icon', getLikeIconVariantClass(entry.item.likeIcon), entry.item.isVoted ? 'like-icon--voted' : '']" :src="entry.item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                    </view>
+                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="entry.item._id">
+                      <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>
 
-            <!-- 交互区（展开时显示） -->
-            <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
-              <view class="actions-left"><!-- 预留左侧空间 --></view>
-              <view class="button-group">
-                <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+            <view class="app-masonry-column">
+              <view
+                v-for="entry in rightColumnPoems"
+                :key="entry.item && (entry.item.portfolioId || entry.item._id) ? (entry.item.portfolioId || entry.item._id) : entry.index"
+                class="post-item-wrapper"
+                :style="{ backgroundColor: entry.item.backgroundColor }"
+              >
+                <view
+                  class="post-content-navigator"
+                  :class="{ 'has-vote-section': entry.item.isExpanded }"
+                  @tap="togglePostExpansion"
+                  @longpress="onLongPressCard"
+                  :data-index="entry.index"
+                  :data-postid="entry.item._id"
+                >
+                  <view class="post-item">
+                    <view :class="'post-content ' + (entry.item.isExpanded ? 'expanded' : 'collapsed') + (!entry.item.isExpanded && (!entry.item.displayHighlightLines || entry.item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="entry.item.displayContent" :style="{ color: entry.item.textColor, whiteSpace: 'pre-wrap' }">
+                      <block v-if="entry.item.isExpanded">
+                        {{ entry.item.displayContent }}
+                      </block>
+                      <block v-else>
+                        <block v-if="entry.item.displayHighlightLines && entry.item.displayHighlightLines.length > 0">
+                          <text v-for="(highlightLine, hIdx) in entry.item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                        </block>
+                        <block v-else>
+                          {{ entry.item.displayContent }}
+                        </block>
+                      </block>
+                    </view>
+
+                    <view v-if="entry.item.isExpanded && entry.item.authorSignature" class="user-signature">
+                      <image class="signature-image" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+
+                    <view v-if="!entry.item.isExpanded && entry.item.authorSignature" class="user-signature-small">
+                      <image class="signature-image-small" :src="entry.item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    </view>
+                  </view>
                 </view>
-                <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                  <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+
+                <view class="vote-section" v-if="entry.item.isExpanded" :style="{ backgroundColor: entry.item.backgroundColor }">
+                  <view class="actions-left"></view>
+                  <view class="button-group">
+                    <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="entry.item._id" :data-index="entry.index">
+                      <image :class="['like-icon', getLikeIconVariantClass(entry.item.likeIcon), entry.item.isVoted ? 'like-icon--voted' : '']" :src="entry.item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                    </view>
+                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="entry.item._id">
+                      <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>
           </view>
+
+          <block v-else>
+            <view v-for="(item, index) in postList" :key="item && (item.portfolioId || item._id) ? (item.portfolioId || item._id) : index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+              <view class="post-content-navigator" :class="{ 'has-vote-section': item.isExpanded }" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
+                <view class="post-item">
+                  <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+                    <block v-if="item.isExpanded">
+                      {{ item.displayContent }}
+                    </block>
+                    <block v-else>
+                      <!-- 折叠状态下只显示高光行 -->
+                      <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
+                        <text v-for="(highlightLine, hIdx) in item.displayHighlightLines" :key="hIdx" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                      </block>
+                      <block v-else>
+                        {{ item.displayContent }}
+                      </block>
+                    </block>
+                  </view>
+
+                  <!-- 作者签名 - 展开时显示大签名 -->
+                  <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
+                    <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  </view>
+
+                  <!-- 作者签名 - 折叠时显示小签名 -->
+                  <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
+                    <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 交互区（展开时显示） -->
+              <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
+                <view class="actions-left"><!-- 预留左侧空间 --></view>
+                <view class="button-group">
+                  <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
+                    <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                  </view>
+                  <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
+                    <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+                  </view>
+                </view>
+              </view>
+            </view>
+          </block>
         </view>
 
         <!-- 底部加载/结束提示 -->
         <view class="loading-footer">
-          <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+          <text v-if="isLoading && postList.length > 0" class="loading-footer-text">加载中...</text>
+          <text v-else-if="hasMore && postList.length > 0" class="loading-footer-action" @tap="loadMore">加载更多</text>
+          <text v-else-if="!hasMore && postList.length > 0">—— 到底啦 ——</text>
         </view>
       </view>
     </scroll-view>
@@ -80,6 +192,7 @@
 </template>
 
 <script>
+import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { formatRelativeTime } from '../../utils/time.js';
 import { previewImage } from '../../utils/imagePreview.js';
@@ -87,11 +200,13 @@ import { togglePostLike } from '../../utils/likeService.js';
 import likeIcon from '../../utils/likeIcon.js';
 import { attachPoemDisplayFields } from '../../utils/poemDisplay.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '../../utils/likeStatusSync.js';
-// authorSignature???????????????????ignatureCache
 // Temporary placeholder for hydrateTempUrls
 const hydrateTempUrls = async (posts) => posts;
 
 export default {
+  components: {
+    dualActionTopBar
+  },
   data() {
     return {
       folderId: '',
@@ -106,11 +221,50 @@ export default {
       showPageIndicator: false, // 调试用
       touchStartY: 0,
       touchEndY: 0,
+      viewportFillTimer: null,
+      viewportAutoFillCount: 0,
       // 背景色和文字颜色处理
       lastUsedColorIndex: -1,
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       votingInProgress: {} // 点赞进行中的状态
     };
+  },
+
+  computed: {
+    useTwoColumnPoems() {
+      return !!(this.appLayout && this.appLayout.poemColumns >= 2 && Array.isArray(this.postList) && this.postList.length > 1);
+    },
+    isSingleWidePoem() {
+      return !!(this.appLayout && this.appLayout.poemColumns >= 2 && Array.isArray(this.postList) && this.postList.length === 1);
+    },
+    viewportFillWatchKey() {
+      const layout = this.appLayout || {};
+      return `${layout.poemColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
+    },
+    leftColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 0; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    },
+    rightColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 1; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    }
+  },
+
+  watch: {
+    viewportFillWatchKey() {
+      if (!this.isLoading && this.hasMore && Array.isArray(this.postList) && this.postList.length > 0) {
+        this.scheduleViewportFillCheck({ resetCounter: true });
+      }
+    }
   },
 
   onLoad(options) {
@@ -142,8 +296,19 @@ export default {
   },
 
   onUnload() {
+    if (this.viewportFillTimer) {
+      clearTimeout(this.viewportFillTimer);
+      this.viewportFillTimer = null;
+    }
     // 取消全局点赞事件监听
     try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+  },
+
+  beforeUnmount() {
+    if (this.viewportFillTimer) {
+      clearTimeout(this.viewportFillTimer);
+      this.viewportFillTimer = null;
+    }
   },
 
   onPullDownRefresh() {
@@ -151,12 +316,62 @@ export default {
     this.skip = 0;
     this.postList = [];
     this.hasMore = true;
+    this.viewportAutoFillCount = 0;
     this.loadPortfolioContent(() => {
       uni.stopPullDownRefresh();
     });
   },
 
   methods: {
+    scheduleViewportFillCheck({ resetCounter = false } = {}) {
+      if (resetCounter) {
+        this.viewportAutoFillCount = 0;
+      }
+      if (this.viewportFillTimer) {
+        clearTimeout(this.viewportFillTimer);
+        this.viewportFillTimer = null;
+      }
+      if (!this.hasMore || this.isLoading) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if (this.viewportAutoFillCount >= 3) return;
+
+      this.$nextTick(() => {
+        this.viewportFillTimer = setTimeout(() => {
+          this.viewportFillTimer = null;
+          this.checkViewportFill();
+        }, 120);
+      });
+    },
+
+    checkViewportFill() {
+      if (!this.hasMore || this.isLoading) return;
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+      if (this.viewportAutoFillCount >= 3) return;
+
+      try {
+        uni.createSelectorQuery()
+          .in(this)
+          .select('.content-scroll')
+          .boundingClientRect()
+          .select('#post-list-container')
+          .boundingClientRect()
+          .exec((res) => {
+            const scrollRect = Array.isArray(res) ? res[0] : null;
+            const listRect = Array.isArray(res) ? res[1] : null;
+            if (!listRect || !listRect.height) return;
+            if (!this.hasMore || this.isLoading) return;
+            const winH = (this.appLayout && Number(this.appLayout.windowHeight)) || 0;
+            const viewportBottom = scrollRect && Number.isFinite(scrollRect.bottom) && scrollRect.height > 0
+              ? scrollRect.bottom
+              : winH;
+            const listBottom = Number.isFinite(listRect.bottom) ? listRect.bottom : ((listRect.top || 0) + listRect.height);
+            if (viewportBottom > 0 && listBottom <= viewportBottom + 80) {
+              this.viewportAutoFillCount += 1;
+              this.loadPortfolioContent();
+            }
+          });
+      } catch (_) {}
+    },
     getLikeIconVariantClass(iconSrc) {
       const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
       if (src.includes('seedplus.png')) return 'like-icon--seedplus';
@@ -277,6 +492,9 @@ export default {
         });
       } finally {
         this.isLoading = false;
+        if (this.hasMore && Array.isArray(this.postList) && this.postList.length > 0) {
+          this.scheduleViewportFillCheck();
+        }
         if (typeof callback === 'function') {
           callback();
         }
@@ -511,43 +729,11 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  /* #ifdef APP-PLUS */
-  padding-top: var(--status-bar-height);
-  /* #endif */
-}
-
-
-/* 自定义返回按钮 */
-.custom-back-btn {
-  position: absolute;
-  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
-  left: 40rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.custom-back-btn:active {
-  transform: scale(0.95);
-}
-
-.custom-back-btn .back-icon {
-  width: 22rpx;
-  height: 38rpx;
-  display: block;
-  object-fit: contain;
-  filter: var(--app-icon-filter, none);
 }
 
 .container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -558,18 +744,39 @@ export default {
 }
 
 .content-container {
-  width: 100vw;            /* 占满视口宽度 */
+  width: 100%;
   box-sizing: border-box;
-  padding: 0 0 32rpx;
-  padding-top: 140rpx; /* 顶部留白，避免与返回按钮重叠 */
+  padding: 100rpx;
+  padding-top: calc(var(--app-safe-area-top, 0px) + 150rpx);
+  padding-bottom: calc(64rpx + var(--app-safe-area-bottom, 0px));
   display: flex;
   flex-direction: column;
   align-items: stretch; /* 让卡片撑满容器 */
 }
 
+.content-container--wide {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: calc(var(--app-safe-area-top, 0px) + 76px);
+  padding-left: calc(24px + var(--app-safe-area-left, 0px));
+  padding-right: calc(24px + var(--app-safe-area-right, 0px));
+  padding-bottom: calc(36px + var(--app-safe-area-bottom, 0px));
+}
+
 #post-list-container {
-  width: 100vw;
+  width: 100%;
   box-sizing: border-box;
+}
+
+.post-list-container--single-wide {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.portfolio-poem-masonry .post-item-wrapper {
+  margin-bottom: 20px;
 }
 
 .empty-state { 
@@ -609,14 +816,21 @@ export default {
 
 .post-content-navigator { 
   display: block; 
+  width: 100%;
+  border-radius: 30rpx;
+  overflow: hidden;
+}
+
+.post-content-navigator.has-vote-section {
+  border-radius: 30rpx 30rpx 0 0;
 }
 
 .post-item { 
-  padding: 32rpx; 
+  padding: 26rpx 50rpx 26rpx 60rpx; 
   position: relative; 
   width: 100%;
   box-sizing: border-box;
-} /* 进一步减少上下padding，文字往左移动 */
+}
 
 /* Typography inspired by poem.css */
 .post-content {
@@ -664,6 +878,7 @@ export default {
   justify-content: space-between; 
   align-items: center; 
   padding: 35rpx 50rpx; 
+  border-radius: 0 0 30rpx 30rpx;
 }
 
 .actions-left { 
@@ -763,6 +978,30 @@ export default {
   color: var(--app-muted-text, #666);
   padding: 40rpx 0 60rpx; 
   font-size: 28rpx;
+}
+
+.loading-footer-text {
+  font-size: 26rpx;
+  color: var(--app-muted-text, #999);
+}
+
+.loading-footer-action {
+  display: inline-block;
+  padding: 12rpx 32rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: var(--app-secondary-text, #666);
+  background: var(--app-subtle-surface-bg, #f2f2f2);
+  cursor: pointer;
+}
+
+@media (max-height: 500px) {
+  .content-container {
+    padding-top: calc(var(--app-safe-area-top, 0px) + 64px);
+  }
+  .empty-state {
+    padding: 48rpx 0;
+  }
 }
 
 .page-indicator { 

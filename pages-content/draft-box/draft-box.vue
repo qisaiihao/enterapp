@@ -1,6 +1,6 @@
 <template>
     <!-- pages/draft-box/draft-box.wxml -->
-    <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="container draft-box-page" :class="{ 'draft-box-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
@@ -10,7 +10,7 @@
         </view>
         
         <!-- 草稿列表 -->
-        <view v-if="drafts.length > 0" class="draft-list" @tap="closeAllDeleteActions">
+        <view v-if="drafts.length > 0" class="draft-list" :class="{ 'draft-list--single': drafts.length === 1 }" @tap="closeAllDeleteActions">
             <view class="draft-item-wrapper" v-for="(item, index) in drafts" :key="index">
                 <view class="draft-item" 
                       @tap.stop="editDraft" 
@@ -520,4 +520,49 @@ export default {
     transform: scale(0.95);
 }
 .create-btn:active { opacity: 0.65; }
+
+@media screen and (min-width: 600px) {
+    .draft-list {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 24px calc(32px + var(--app-safe-area-bottom, 0px));
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .draft-list.draft-list--single {
+        max-width: 680px;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .draft-item-wrapper {
+        border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+        box-shadow: var(--app-surface-shadow, 0 4px 14px rgba(0, 0, 0, 0.04));
+    }
+
+    .draft-item {
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        align-items: stretch;
+        background: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+    }
+
+    .draft-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .empty-container {
+        padding: 64rpx 40rpx;
+    }
+}
 </style>

@@ -31,7 +31,7 @@ export function staleFavoriteError() {
 export function invalidateFavoriteCaches({ userId, postId, kind } = {}) {
   if (!userId) return;
   state.set(`revision:folders:${userId}`, {});
-  if (kind === 'folder-created' || kind === 'folder-updated') return;
+  if (kind === 'folder-created' || kind === 'folder-updated' || kind === 'folder-reordered') return;
   state.set(`revision:items:${userId}`, {});
   // 分页删除会移动后续页边界，因此该用户全部收藏页都失效。
   cacheManager.namespace(`userFavorites:${userId}`, { persistent: true }).clear();

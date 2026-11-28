@@ -50,6 +50,30 @@ async function getExactFolderCount(folderId) {
   return items.length - orphanItems.length;
 }
 
+function hasValidSortOrder(folder) {
+  return folder && typeof folder.sortOrder === 'number' && Number.isFinite(folder.sortOrder);
+}
+
+function getFolderTimestamp(folder) {
+  if (!folder || !folder.createTime) return 0;
+  const ts = new Date(folder.createTime).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function sortFoldersByOrder(folders = []) {
+  return folders.slice().sort((a, b) => {
+    const aHas = hasValidSortOrder(a);
+    const bHas = hasValidSortOrder(b);
+    if (aHas && bHas) {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return getFolderTimestamp(b) - getFolderTimestamp(a);
+    }
+    if (!aHas && bHas) return -1;
+    if (aHas && !bHas) return 1;
+    return getFolderTimestamp(b) - getFolderTimestamp(a);
+  });
+}
+
 function normalizeFolderCount(folder = {}, exactCount = null) {
   const normalizedCount = exactCount === null
     ? (Number(
@@ -106,7 +130,7 @@ exports.main = async (event) => {
       }
     }
 
-    const rawFolders = result.data || [];
+    const rawFolders = sortFoldersByOrder(result.data || []);
     const exactCounts = await Promise.all(
       rawFolders.map(folder => getExactFolderCount(folder && folder._id))
     );

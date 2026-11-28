@@ -1,6 +1,6 @@
 <template>
     <!-- pages/my-likes/my-likes.wxml -->
-    <view class="container" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
+    <view class="container my-likes-page" :class="{ 'my-likes-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
@@ -11,86 +11,241 @@
 
 
         <!-- 主内容始终渲染 -->
-        <view>
-            <view v-if="likedPosts.length > 0" class="post-list">
-                <view class="post-item" @tap="navigateToPost" :data-id="item._id" v-for="(item, index) in likedPosts" :key="index">
-                    <!-- Author Info -->
+        <view class="my-likes-body">
+            <view v-if="likedPosts.length > 0" id="my-likes-list-container" class="post-list" :class="{ 'post-list--masonry': useTwoColumnLikes, 'post-list--single-wide': isSingleWideLike }">
+                <view v-if="useTwoColumnLikes" class="app-masonry-columns my-likes-masonry">
+                    <view class="app-masonry-column">
+                        <view class="post-item" @tap="navigateToPost" :data-id="entry.item._id" v-for="entry in leftColumnLikes" :key="entry.item._id || entry.index">
+                            <view class="author-info">
+                                <image class="author-avatar" :src="resolvePostAvatar(entry.item)" mode="aspectFill" @error="onAvatarError"></image>
+                                <text class="author-name">{{ entry.item.authorName }}</text>
+                            </view>
 
-                    <view class="author-info">
-                        <image class="author-avatar" :src="resolvePostAvatar(item)" mode="aspectFill" @error="onAvatarError"></image>
-                        <text class="author-name">{{ item.authorName }}</text>
-                    </view>
+                            <view class="post-title">{{ entry.item.title }}</view>
 
-                    <view class="post-title">{{ item.title }}</view>
+                            <view class="post-content-preview">{{ entry.item.content }}</view>
 
-                    <view class="post-content-preview">{{ item.content }}</view>
-
-                    <!-- 图片显示逻辑（迁移自详情页/首页，支持单图瘦高图钳制和多图swiper高度） -->
-
-                    <view v-if="item.imageUrl || (item.imageUrls && item.imageUrls.length > 0)" class="image-container" :id="'image-container-' + index">
-                        <!-- 单张图片 -->
-                        <block v-if="item.imageUrls && item.imageUrls.length === 1">
-                            <image
-                                :id="'single-image-' + item._id"
-                                :src="item.imageUrls[0]"
-                                :mode="imageClampHeights[item._id] ? 'aspectFill' : 'widthFix'"
-                                :style="
-                                    'width: 100%; height: ' +
-                                    (imageClampHeights[item._id] ? imageClampHeights[item._id] + 'px' : 'auto') +
-                                    '; object-fit: ' +
-                                    (imageClampHeights[item._id] ? 'cover' : 'contain') +
-                                    '; background-color: var(--app-subtle-surface-bg, #f0f0f0);'
-                                "
-                                @load="onImageLoad"
-                                :data-postid="item._id"
-                                data-type="single"
-                                @error="onImageError"
-                                @tap.stop.prevent="handlePreview"
-                                :data-src="item.imageUrls[0]"
-                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                :lazy-load="true"
-                            />
-                        </block>
-                        <!-- 多张图片 -->
-                        <block v-else-if="item.imageUrls && item.imageUrls.length > 1">
-                            <swiper
-                                :id="'swiper-' + item._id"
-                                class="image-swiper"
-                                :indicator-dots="true"
-                                :circular="true"
-                                :style="'width: 100%; height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
-                            >
-                                <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                    <swiper-item>
-                                        <image
-                                            :src="img"
-                                            mode="aspectFill"
-                                            @load="onImageLoad"
-                                            :data-postid="item._id"
-                                            :data-postindex="index"
-                                            :data-imgindex="imgindex"
-                                            data-type="multi"
-                                            @error="onImageError"
-                                            @tap.stop.prevent="handlePreview"
-                                            :data-src="img"
-                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                            :lazy-load="true"
-                                            style="width: 100%; height: 100%; object-fit: cover; background-color: var(--app-subtle-surface-bg, #f0f0f0)"
-                                        />
-                                    </swiper-item>
+                            <view v-if="entry.item.imageUrl || (entry.item.imageUrls && entry.item.imageUrls.length > 0)" class="image-container" :id="'image-container-' + entry.index">
+                                <block v-if="entry.item.imageUrls && entry.item.imageUrls.length === 1">
+                                    <image
+                                        :id="'single-image-' + entry.item._id"
+                                        :src="entry.item.imageUrls[0]"
+                                        :mode="imageClampHeights[entry.item._id] ? 'aspectFill' : 'widthFix'"
+                                        :style="
+                                            'width: 100%; height: ' +
+                                            (imageClampHeights[entry.item._id] ? imageClampHeights[entry.item._id] + 'px' : 'auto') +
+                                            '; object-fit: ' +
+                                            (imageClampHeights[entry.item._id] ? 'cover' : 'contain') +
+                                            '; background-color: var(--app-subtle-surface-bg, #f0f0f0);'
+                                        "
+                                        @load="onImageLoad"
+                                        :data-postid="entry.item._id"
+                                        data-type="single"
+                                        @error="onImageError"
+                                        @tap.stop.prevent="handlePreview"
+                                        :data-src="entry.item.imageUrls[0]"
+                                        :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                        :lazy-load="true"
+                                    />
                                 </block>
-                            </swiper>
-                        </block>
+                                <block v-else-if="entry.item.imageUrls && entry.item.imageUrls.length > 1">
+                                    <swiper
+                                        :id="'swiper-' + entry.item._id"
+                                        class="image-swiper"
+                                        :indicator-dots="true"
+                                        :circular="true"
+                                        :style="'width: 100%; height: ' + (swiperHeights[entry.index] ? swiperHeights[entry.index] + 'px' : '220px') + ';'"
+                                    >
+                                        <block v-for="(img, imgindex) in entry.item.imageUrls" :key="imgindex">
+                                            <swiper-item>
+                                                <image
+                                                    :src="img"
+                                                    mode="aspectFill"
+                                                    @load="onImageLoad"
+                                                    :data-postid="entry.item._id"
+                                                    :data-postindex="entry.index"
+                                                    :data-swiper-selector="'#swiper-' + entry.item._id"
+                                                    :data-imgindex="imgindex"
+                                                    data-type="multi"
+                                                    @error="onImageError"
+                                                    @tap.stop.prevent="handlePreview"
+                                                    :data-src="img"
+                                                    :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                                    :lazy-load="true"
+                                                    style="width: 100%; height: 100%; object-fit: cover; background-color: var(--app-subtle-surface-bg, #f0f0f0)"
+                                                />
+                                            </swiper-item>
+                                        </block>
+                                    </swiper>
+                                </block>
+                            </view>
+
+                            <view class="post-meta">
+                                <text class="post-time">{{ entry.item.formattedCreateTime }}</text>
+                            </view>
+                        </view>
                     </view>
 
-                    <!-- Post Meta -->
+                    <view class="app-masonry-column">
+                        <view class="post-item" @tap="navigateToPost" :data-id="entry.item._id" v-for="entry in rightColumnLikes" :key="entry.item._id || entry.index">
+                            <view class="author-info">
+                                <image class="author-avatar" :src="resolvePostAvatar(entry.item)" mode="aspectFill" @error="onAvatarError"></image>
+                                <text class="author-name">{{ entry.item.authorName }}</text>
+                            </view>
 
-                    <view class="post-meta">
-                        <text class="post-time">{{ item.formattedCreateTime }}</text>
+                            <view class="post-title">{{ entry.item.title }}</view>
+
+                            <view class="post-content-preview">{{ entry.item.content }}</view>
+
+                            <view v-if="entry.item.imageUrl || (entry.item.imageUrls && entry.item.imageUrls.length > 0)" class="image-container" :id="'image-container-' + entry.index">
+                                <block v-if="entry.item.imageUrls && entry.item.imageUrls.length === 1">
+                                    <image
+                                        :id="'single-image-' + entry.item._id"
+                                        :src="entry.item.imageUrls[0]"
+                                        :mode="imageClampHeights[entry.item._id] ? 'aspectFill' : 'widthFix'"
+                                        :style="
+                                            'width: 100%; height: ' +
+                                            (imageClampHeights[entry.item._id] ? imageClampHeights[entry.item._id] + 'px' : 'auto') +
+                                            '; object-fit: ' +
+                                            (imageClampHeights[entry.item._id] ? 'cover' : 'contain') +
+                                            '; background-color: var(--app-subtle-surface-bg, #f0f0f0);'
+                                        "
+                                        @load="onImageLoad"
+                                        :data-postid="entry.item._id"
+                                        data-type="single"
+                                        @error="onImageError"
+                                        @tap.stop.prevent="handlePreview"
+                                        :data-src="entry.item.imageUrls[0]"
+                                        :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                        :lazy-load="true"
+                                    />
+                                </block>
+                                <block v-else-if="entry.item.imageUrls && entry.item.imageUrls.length > 1">
+                                    <swiper
+                                        :id="'swiper-' + entry.item._id"
+                                        class="image-swiper"
+                                        :indicator-dots="true"
+                                        :circular="true"
+                                        :style="'width: 100%; height: ' + (swiperHeights[entry.index] ? swiperHeights[entry.index] + 'px' : '220px') + ';'"
+                                    >
+                                        <block v-for="(img, imgindex) in entry.item.imageUrls" :key="imgindex">
+                                            <swiper-item>
+                                                <image
+                                                    :src="img"
+                                                    mode="aspectFill"
+                                                    @load="onImageLoad"
+                                                    :data-postid="entry.item._id"
+                                                    :data-postindex="entry.index"
+                                                    :data-swiper-selector="'#swiper-' + entry.item._id"
+                                                    :data-imgindex="imgindex"
+                                                    data-type="multi"
+                                                    @error="onImageError"
+                                                    @tap.stop.prevent="handlePreview"
+                                                    :data-src="img"
+                                                    :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                                    :lazy-load="true"
+                                                    style="width: 100%; height: 100%; object-fit: cover; background-color: var(--app-subtle-surface-bg, #f0f0f0)"
+                                                />
+                                            </swiper-item>
+                                        </block>
+                                    </swiper>
+                                </block>
+                            </view>
+
+                            <view class="post-meta">
+                                <text class="post-time">{{ entry.item.formattedCreateTime }}</text>
+                            </view>
+                        </view>
                     </view>
                 </view>
+
+                <block v-else>
+                    <view class="post-item" @tap="navigateToPost" :data-id="item._id" v-for="(item, index) in likedPosts" :key="item._id || index">
+                        <!-- Author Info -->
+
+                        <view class="author-info">
+                            <image class="author-avatar" :src="resolvePostAvatar(item)" mode="aspectFill" @error="onAvatarError"></image>
+                            <text class="author-name">{{ item.authorName }}</text>
+                        </view>
+
+                        <view class="post-title">{{ item.title }}</view>
+
+                        <view class="post-content-preview">{{ item.content }}</view>
+
+                        <!-- 图片显示逻辑（迁移自详情页/首页，支持单图瘦高图钳制和多图swiper高度） -->
+
+                        <view v-if="item.imageUrl || (item.imageUrls && item.imageUrls.length > 0)" class="image-container" :id="'image-container-' + index">
+                            <!-- 单张图片 -->
+                            <block v-if="item.imageUrls && item.imageUrls.length === 1">
+                                <image
+                                    :id="'single-image-' + item._id"
+                                    :src="item.imageUrls[0]"
+                                    :mode="imageClampHeights[item._id] ? 'aspectFill' : 'widthFix'"
+                                    :style="
+                                        'width: 100%; height: ' +
+                                        (imageClampHeights[item._id] ? imageClampHeights[item._id] + 'px' : 'auto') +
+                                        '; object-fit: ' +
+                                        (imageClampHeights[item._id] ? 'cover' : 'contain') +
+                                        '; background-color: var(--app-subtle-surface-bg, #f0f0f0);'
+                                    "
+                                    @load="onImageLoad"
+                                    :data-postid="item._id"
+                                    data-type="single"
+                                    @error="onImageError"
+                                    @tap.stop.prevent="handlePreview"
+                                    :data-src="item.imageUrls[0]"
+                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                    :lazy-load="true"
+                                />
+                            </block>
+                            <!-- 多张图片 -->
+                            <block v-else-if="item.imageUrls && item.imageUrls.length > 1">
+                                <swiper
+                                    :id="'swiper-' + item._id"
+                                    class="image-swiper"
+                                    :indicator-dots="true"
+                                    :circular="true"
+                                    :style="'width: 100%; height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
+                                >
+                                    <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
+                                        <swiper-item>
+                                            <image
+                                                :src="img"
+                                                mode="aspectFill"
+                                                @load="onImageLoad"
+                                                :data-postid="item._id"
+                                                :data-postindex="index"
+                                                :data-swiper-selector="'#swiper-' + item._id"
+                                                :data-imgindex="imgindex"
+                                                data-type="multi"
+                                                @error="onImageError"
+                                                @tap.stop.prevent="handlePreview"
+                                                :data-src="img"
+                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                :lazy-load="true"
+                                                style="width: 100%; height: 100%; object-fit: cover; background-color: var(--app-subtle-surface-bg, #f0f0f0)"
+                                            />
+                                        </swiper-item>
+                                    </block>
+                                </swiper>
+                            </block>
+                        </view>
+
+                        <!-- Post Meta -->
+
+                        <view class="post-meta">
+                            <text class="post-time">{{ item.formattedCreateTime }}</text>
+                        </view>
+                    </view>
+                </block>
+
+                <view class="likes-footer">
+                    <text v-if="isLoadingMore" class="likes-footer-text">加载中...</text>
+                    <text v-else-if="hasMore" class="likes-footer-action" @tap="onManualLoadMore">加载更多</text>
+                    <text v-else class="likes-footer-text">没有更多了</text>
+                </view>
             </view>
-            <view v-else class="empty-tip">
+            <view v-else-if="!isLoading" class="empty-tip">
                 <view class="empty-text">你还没有点赞任何帖子哦～</view>
                 <view class="empty-subtext">去首页发现精彩内容吧！</view>
             </view>
@@ -118,15 +273,120 @@ export default {
             // 每个帖子的swiper高度，跟随第一张图片
             // 新增：单图瘦高图钳制高度
             imageClampHeights: {},
+            viewportFillTimer: null,
+            viewportAutoFillCount: 0,
 
             imgindex: 0,
             img: ''
         };
     },
+    computed: {
+        useTwoColumnLikes() {
+            return !!(this.appLayout && this.appLayout.feedColumns >= 2 && Array.isArray(this.likedPosts) && this.likedPosts.length > 1);
+        },
+        isSingleWideLike() {
+            return !!(this.appLayout && this.appLayout.feedColumns >= 2 && Array.isArray(this.likedPosts) && this.likedPosts.length === 1);
+        },
+        viewportFillWatchKey() {
+            const layout = this.appLayout || {};
+            return `${layout.feedColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
+        },
+        leftColumnLikes() {
+            const list = Array.isArray(this.likedPosts) ? this.likedPosts : [];
+            const out = [];
+            for (let i = 0; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        },
+        rightColumnLikes() {
+            const list = Array.isArray(this.likedPosts) ? this.likedPosts : [];
+            const out = [];
+            for (let i = 1; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        }
+    },
+    watch: {
+        likedPosts(newVal, oldVal) {
+            const newLen = Array.isArray(newVal) ? newVal.length : 0;
+            const oldLen = Array.isArray(oldVal) ? oldVal.length : 0;
+            if (newLen === 0) {
+                this.viewportAutoFillCount = 0;
+                return;
+            }
+            if (newLen > oldLen && !this.isLoading && !this.isLoadingMore && this.hasMore) {
+                this.scheduleViewportFillCheck({ resetCounter: oldLen === 0 });
+            }
+        },
+        viewportFillWatchKey() {
+            if (!this.isLoading && !this.isLoadingMore && this.hasMore && Array.isArray(this.likedPosts) && this.likedPosts.length > 0) {
+                this.scheduleViewportFillCheck({ resetCounter: true });
+            }
+        }
+    },
+    beforeUnmount() {
+        if (this.viewportFillTimer) {
+            clearTimeout(this.viewportFillTimer);
+            this.viewportFillTimer = null;
+        }
+    },
     onLoad: function (options) {
         this.initPagination(this.loadLikedPosts, { pageSize: PAGE_SIZE });
     },
     methods: {
+        onManualLoadMore() {
+            if (typeof this.loadNext === 'function') {
+                this.loadNext().catch(() => {});
+            }
+        },
+        scheduleViewportFillCheck({ resetCounter = false } = {}) {
+            if (resetCounter) {
+                this.viewportAutoFillCount = 0;
+            }
+            if (this.viewportFillTimer) {
+                clearTimeout(this.viewportFillTimer);
+                this.viewportFillTimer = null;
+            }
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.likedPosts) || this.likedPosts.length === 0) return;
+            if (this.viewportAutoFillCount >= 3) return;
+
+            this.$nextTick(() => {
+                this.viewportFillTimer = setTimeout(() => {
+                    this.viewportFillTimer = null;
+                    this.checkViewportFill();
+                }, 120);
+            });
+        },
+        checkViewportFill() {
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.likedPosts) || this.likedPosts.length === 0) return;
+            if (this.viewportAutoFillCount >= 3) return;
+            if (typeof this.loadNext !== 'function') return;
+
+            try {
+                const winH = (typeof window !== 'undefined' && Number(window.innerHeight) > 0)
+                    ? window.innerHeight
+                    : ((this.appLayout && Number(this.appLayout.windowHeight)) || 0);
+                if (!winH) return;
+
+                uni.createSelectorQuery()
+                    .in(this)
+                    .select('#my-likes-list-container')
+                    .boundingClientRect((rect) => {
+                        if (!rect || !rect.height) return;
+                        if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+                        const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+                        if (rectBottom <= winH + 120) {
+                            this.viewportAutoFillCount += 1;
+                            this.loadNext().catch(() => {});
+                        }
+                    })
+                    .exec();
+            } catch (_) {}
+        },
         resolvePostAvatar(post) {
             return resolvePostAuthorAvatar(post);
         },
@@ -263,10 +523,15 @@ export default {
 <style>
 /* pages/my-likes/my-likes.wxss */
 .container {
-    padding: 20rpx;
+    padding: 0;
     background-color: var(--app-page-bg, #f7f8fa);
     color: var(--app-primary-text, #111111);
     min-height: 100vh;
+}
+
+.my-likes-body {
+    padding: 20rpx;
+    box-sizing: border-box;
 }
 
 .header {
@@ -274,15 +539,15 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: calc(var(--app-safe-area-top, 0px) + 20rpx) 30rpx 20rpx;
+    padding: calc(var(--app-safe-area-top, 0px) + 20rpx) calc(30rpx + var(--app-safe-area-right, 0px)) 20rpx calc(30rpx + var(--app-safe-area-left, 0px));
     background: var(--app-fixed-bar-bg, #fff);
     border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
-    margin-bottom: 20rpx;
 }
 
 .header-left {
     position: absolute;
-    left: 30rpx;
+    left: calc(30rpx + var(--app-safe-area-left, 0px));
+    bottom: 14rpx;
     width: 60rpx;
     height: 60rpx;
     display: flex;
@@ -320,6 +585,45 @@ export default {
 
 .post-list {
     margin-bottom: 20rpx;
+}
+
+.post-list--masonry {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 8px 16px 24px;
+    box-sizing: border-box;
+}
+
+.post-list--single-wide {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 8px 16px 24px;
+    box-sizing: border-box;
+}
+
+.my-likes-masonry .post-item {
+    border-radius: 14px;
+    margin-bottom: 16px;
+}
+
+.likes-footer {
+    text-align: center;
+    padding: 24rpx 0 calc(32rpx + var(--app-safe-area-bottom, 0px));
+}
+
+.likes-footer-text {
+    font-size: 26rpx;
+    color: var(--app-muted-text, #999);
+}
+
+.likes-footer-action {
+    display: inline-block;
+    padding: 12rpx 32rpx;
+    border-radius: 999rpx;
+    font-size: 26rpx;
+    color: var(--app-secondary-text, #666);
+    background: var(--app-subtle-surface-bg, #ebedf0);
+    cursor: pointer;
 }
 
 .post-item {

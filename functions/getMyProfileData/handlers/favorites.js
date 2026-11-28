@@ -1,5 +1,29 @@
 const { scopedPublicWhere } = require('../_lib/posts/query');
 
+function hasValidSortOrder(folder) {
+  return folder && typeof folder.sortOrder === 'number' && Number.isFinite(folder.sortOrder);
+}
+
+function getFolderTimestamp(folder) {
+  if (!folder || !folder.createTime) return 0;
+  const ts = new Date(folder.createTime).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function sortFoldersByOrder(folders = []) {
+  return folders.slice().sort((a, b) => {
+    const aHas = hasValidSortOrder(a);
+    const bHas = hasValidSortOrder(b);
+    if (aHas && bHas) {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return getFolderTimestamp(b) - getFolderTimestamp(a);
+    }
+    if (!aHas && bHas) return -1;
+    if (aHas && !bHas) return 1;
+    return getFolderTimestamp(b) - getFolderTimestamp(a);
+  });
+}
+
 function createFavoriteHandlers({ db, cloud }) {
 async function getFavoriteFolders(openid) {
   try {
@@ -37,7 +61,7 @@ async function getFavoriteFolders(openid) {
     }
 
     // 处理封面图片URL转换
-    const folders = result.data;
+    const folders = sortFoldersByOrder(result.data);
     const fileIDSet = new Set();
     
     // 收集所有需要转换的cloud:// URL
@@ -654,9 +678,68 @@ async function getAllFavorites(openid, skip, limit) {
   }
 }
 
+async function updateFavoriteFolderOrder(openid, folderIds) {
+  try {
+    const requestedIds = Array.isArray(folderIds)
+      ? folderIds.map(id => String(id || '').trim()).filter(Boolean)
+      : [];
+    if (requestedIds.length === 0) {
+      return {
+        success: false,
+        message: '排序列表不能为空'
+      };
+    }
+
+    const existing = await db.collection('favorite_folders').where({
+      _openid: openid
+    }).get();
+    const allOwned = existing.data || [];
+    const ownedMap = new Map(allOwned.map(item => [item._id, item]));
+    const orderedIds = [];
+    const seen = new Set();
+
+    for (const id of requestedIds) {
+      if (ownedMap.has(id) && !seen.has(id)) {
+        seen.add(id);
+        orderedIds.push(id);
+      }
+    }
+
+    const remaining = sortFoldersByOrder(allOwned.filter(item => item && !seen.has(item._id)));
+    for (const item of remaining) {
+      orderedIds.push(item._id);
+    }
+
+    const now = new Date();
+    await Promise.all(orderedIds.map((id, index) =>
+      db.collection('favorite_folders').doc(id).update({
+        data: {
+          sortOrder: index,
+          updateTime: now
+        }
+      })
+    ));
+
+    return {
+      success: true,
+      updatedOrder: true,
+      updatedCount: orderedIds.length,
+      message: '收藏夹排序已更新'
+    };
+  } catch (error) {
+    console.error('更新收藏夹排序失败:', error);
+    return {
+      success: false,
+      message: '更新收藏夹排序失败',
+      error: error.message
+    };
+  }
+}
+
   return {
     getFavoriteFolders,
     createFavoriteFolder,
+    updateFavoriteFolderOrder,
     addToFavorite,
     getFavoritesByFolder,
     removeFromFavorite,

@@ -201,6 +201,43 @@ async function main() {
   assert.equal(page.hasMore, true);
   const list = await legacy.load('getPortfolios')({ openid: 'reader' });
   assert.equal(list.portfolios.find(folder => folder._id === current.folderId).itemCount, 1);
+
+  const secondPublic = await legacy.load('createPortfolioFolder')({ openid: 'reader', folderName: '公开集二' });
+  assert.equal(secondPublic.success, true);
+  const reorderResult = await legacy.load('updatePortfolioFolder')({
+    openid: 'reader',
+    action: 'updateOrder',
+    folderIds: [manual.portfolio._id, secondPublic.folderId, current.folderId, 'non-existent-id']
+  });
+  assert.equal(reorderResult.success, true);
+  assert.equal(reorderResult.updatedOrder, true);
+  assert.deepEqual(
+    Array.from((await legacy.load('getPortfolioFolders')({ openid: 'reader' })).folders).map(f => f._id),
+    [manual.portfolio._id, secondPublic.folderId, current.folderId],
+    'getPortfolioFolders respects custom sortOrder'
+  );
+  assert.deepEqual(
+    Array.from((await legacy.load('getPortfolios')({ openid: 'reader' })).portfolios).map(f => f._id),
+    [manual.portfolio._id, secondPublic.folderId, current.folderId],
+    'getPortfolios respects custom sortOrder'
+  );
+  assert.equal(
+    (await legacy.load('getPortfolios')({ openid: 'reader', skip: 0, limit: 1 })).portfolios[0]._id,
+    manual.portfolio._id,
+    'paginated getPortfolios slices after custom sortOrder'
+  );
+  assert.deepEqual(
+    Array.from((await legacy.load('getUserPortfolio')({ openid: 'visitor', userId: 'reader' })).folders).map(f => f._id),
+    [secondPublic.folderId, current.folderId],
+    'getUserPortfolio public bookshelf order matches custom sortOrder'
+  );
+  const newest = await legacy.load('createPortfolioFolder')({ openid: 'reader', folderName: '后建排最前' });
+  assert.equal(newest.success, true);
+  assert.deepEqual(
+    Array.from((await legacy.load('getPortfolioFolders')({ openid: 'reader' })).folders).map(f => f._id),
+    [newest.folderId, manual.portfolio._id, secondPublic.folderId, current.folderId],
+    'newly created folder defaults to top while preserving sorted order of existing folders'
+  );
   assert.equal(legacy.legacyAccesses, 0);
 
   const binding = runtime({

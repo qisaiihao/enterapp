@@ -40,6 +40,7 @@ import { lightImpact } from '@/utils/haptics.js';
 import { acceptPrivacyConsent, hasAcceptedPrivacyConsent } from '@/utils/privacyConsent.js';
 // #ifdef APP-PLUS
 import { declinePrivacyConsent } from '@/utils/privacyConsent.js';
+import { openPendingPoemWidgetDetail } from '@/utils/poemWidgetNavigation.js';
 // #endif
 import { createSplashGate, SPLASH_MIN_MS } from '@/utils/splashGate.js';
 import { hasPoemSquarePreload, preloadPoemSquare, retainPoemSquarePreload } from '@/utils/splashPreload.js';
@@ -238,22 +239,27 @@ export default {
             clearTimeout(this._loginStateTimer);
             retainPoemSquarePreload();
             const startupState = getAppState();
-            const url = needsProfileSetup(startupState.userInfo)
-                ? '/pages-user/profile-setup/profile-setup'
-                : '/pages/poem-square/poem-square';
+            const needsSetup = needsProfileSetup(startupState.userInfo);
+            const onFail = () => {
+                if (this._splashDisposed) return;
+                this._splashNavigating = false;
+                this._navigationFailed = true;
+                this.fadeOut = false;
+                this.showEnterButton = true;
+                this.showNewLineCursor = false;
+                uni.showToast({ title: '进入失败，请点击重试', icon: 'none' });
+            };
             // switchTab 在 App 上会以 auto 关闭非 Tab 窗口，额外触发右滑。
             // 开屏已经自行淡出，reLaunch 用 none 切换并清理开屏页面栈。
+            // #ifdef APP-PLUS
+            if (!needsSetup && openPendingPoemWidgetDetail({ replaceStartup: true, onFail })) return;
+            // #endif
             uni.reLaunch({
-                url,
-                fail: () => {
-                    if (this._splashDisposed) return;
-                    this._splashNavigating = false;
-                    this._navigationFailed = true;
-                    this.fadeOut = false;
-                    this.showEnterButton = true;
-                    this.showNewLineCursor = false;
-                    uni.showToast({ title: '进入失败，请点击重试', icon: 'none' });
-                }
+                url: needsSetup ? '/pages-user/profile-setup/profile-setup' : '/pages/poem-square/poem-square',
+                // #ifdef APP-PLUS
+                success: () => { openPendingPoemWidgetDetail(); },
+                // #endif
+                fail: onFail
             });
         },
         onShareAppMessage() {

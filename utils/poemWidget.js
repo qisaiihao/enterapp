@@ -34,4 +34,16 @@ function getPoemWidgetNextToken(path) {
   return match ? match[1] : '';
 }
 
-export { POEM_WIDGET_SOURCES, DEFAULT_WIDGET_OPTIONS, normalizeWidgetColor, normalizeWidgetSettings, getPoemWidgetNextToken };
+function getPoemWidgetPostId(path) {
+  if (typeof path !== 'string') return '';
+  const match = /^(?:poementer:\/\/)?poem-widget\/detail\?id=([^&#\s]+)$/i.exec(path);
+  if (!match) return '';
+  try {
+    const id = decodeURIComponent(match[1]);
+    return id.trim() && !/[\x00-\x1f\x7f]/.test(id) ? id : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+export { POEM_WIDGET_SOURCES, DEFAULT_WIDGET_OPTIONS, normalizeWidgetColor, normalizeWidgetSettings, getPoemWidgetNextToken, getPoemWidgetPostId };

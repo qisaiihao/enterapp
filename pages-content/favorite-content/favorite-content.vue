@@ -1,116 +1,320 @@
 <template>
     <!-- pages/favorite-content/favorite-content.wxml -->
-    <view class="container" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
+    <view class="container favorite-content-page" :class="{ 'favorite-content-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
 
         <!-- 收藏内容列表 -->
-        <view v-if="favorites.length > 0" class="favorites-container">
-            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favorites" :key="item.favoriteId || item._id">
-                <view class="more-menu-btn-top-right" @tap.stop.prevent="showFavoriteActions(item)">
-                    <view class="more-menu-dots-small">
-                        <view class="dot-small"></view>
-                        <view class="dot-small"></view>
-                        <view class="dot-small"></view>
-                    </view>
-                </view>
-                <!-- 作者信息 -->
+        <view v-if="favorites.length > 0" id="favorite-list-container" class="favorites-container" :class="{ 'favorites-container--masonry': useTwoColumnFavorites, 'favorites-container--single-wide': isSingleWideFavorite }">
+            <view v-if="useTwoColumnFavorites" class="app-masonry-columns favorite-masonry">
+                <view class="app-masonry-column">
+                    <view :class="'post-item-wrapper ' + (entry.item.isOriginal ? 'original-post' : '')" v-for="entry in leftColumnFavorites" :key="entry.item.favoriteId || entry.item._id || entry.index">
+                        <view class="more-menu-btn-top-right" @tap.stop.prevent="showFavoriteActions(entry.item)">
+                            <view class="more-menu-dots-small">
+                                <view class="dot-small"></view>
+                                <view class="dot-small"></view>
+                                <view class="dot-small"></view>
+                            </view>
+                        </view>
 
-                <view class="author-info-outside">
-                    <image
-                        v-if="item.postAuthorAvatar"
-                        class="author-avatar"
-                        :src="item.postAuthorAvatar"
-                        mode="aspectFill"
-                        @error="onAvatarError"
-                        @load="onAvatarLoad"
-                        :data-postindex="index"
-                        @tap.stop.prevent="navigateToUserProfile"
-                        :data-user-id="item.postAuthorOpenid"
-                    />
-                    <text class="author-name">{{ item.postAuthorName }}</text>
-                </view>
+                        <view class="author-info-outside">
+                            <image
+                                v-if="entry.item.postAuthorAvatar"
+                                class="author-avatar"
+                                :src="entry.item.postAuthorAvatar"
+                                mode="aspectFill"
+                                @error="onAvatarError"
+                                @load="onAvatarLoad"
+                                :data-postindex="entry.index"
+                                @tap.stop.prevent="navigateToUserProfile"
+                                :data-user-id="entry.item.postAuthorOpenid"
+                            />
+                            <text class="author-name">{{ entry.item.postAuthorName }}</text>
+                        </view>
 
-                <!-- 可点击的内容区域 - 跳转到详情页 -->
+                        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + entry.item.postId" hover-class="navigator-hover">
+                            <view class="post-item">
+                                <view class="post-title">{{ entry.item.postTitle }}</view>
+                                <view v-if="entry.item.postIsPoem && entry.item.postAuthor" class="poem-author">{{ entry.item.postAuthor }}</view>
 
-                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item.postId" hover-class="navigator-hover">
-                    <view class="post-item">
-                        <view class="post-title">{{ item.postTitle }}</view>
-                        <!-- 诗歌作者信息 -->
-                        <view v-if="item.postIsPoem && item.postAuthor" class="poem-author">{{ item.postAuthor }}</view>
-
-                        <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                        <view
-                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                            class="image-container-wrapper"
-                            :style="item.imageStyle"
-                            @tap.stop.prevent="handlePreview"
-                            :data-src="item.imageUrls[0]"
-                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                        >
-                            <!-- 单张图片 -->
-                            <block v-if="item.imageUrls.length === 1">
-                                <image
-                                    :id="'single-image-' + item.postId"
-                                    class="post-image"
-                                    :src="item.imageUrls[0]"
-                                    mode="aspectFill"
-                                    :lazy-load="true"
-                                    @error="onImageError"
-                                    @load="onImageLoad"
-                                    :data-postid="item.postId"
-                                    :data-postindex="index"
-                                    data-imgindex="0"
-                                    data-type="single"
-                                />
-                            </block>
-
-                            <!-- 多张图片 -->
-                            <block v-else-if="item.imageUrls.length > 1">
-                                <swiper
-                                    :id="'swiper-' + item.postId"
-                                    class="image-swiper"
-                                    :indicator-dots="true"
-                                    :circular="true"
+                                <view
+                                    v-if="entry.item.imageUrls && entry.item.imageUrls.length > 0"
+                                    class="image-container-wrapper"
+                                    :style="entry.item.imageStyle"
+                                    @tap.stop.prevent="handlePreview"
+                                    :data-src="entry.item.imageUrls[0]"
+                                    :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
                                 >
-                                    <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                        <swiper-item>
-                                            <image
-                                                class="post-image"
-                                                :src="img"
-                                                mode="aspectFill"
-                                                :lazy-load="true"
-                                                @error="onImageError"
-                                                @load="onImageLoad"
-                                                @tap.stop.prevent="handlePreview"
-                                                :data-src="img"
-                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                :data-postid="item.postId"
-                                                :data-postindex="index"
-                                                :data-imgindex="imgindex"
-                                                data-type="multi"
-                                            />
-                                        </swiper-item>
+                                    <block v-if="entry.item.imageUrls.length === 1">
+                                        <image
+                                            :id="'single-image-' + entry.item.postId"
+                                            class="post-image"
+                                            :src="entry.item.imageUrls[0]"
+                                            mode="aspectFill"
+                                            :lazy-load="true"
+                                            @error="onImageError"
+                                            @load="onImageLoad"
+                                            :data-postid="entry.item.postId"
+                                            :data-postindex="entry.index"
+                                            data-imgindex="0"
+                                            data-type="single"
+                                        />
                                     </block>
-                                </swiper>
-                            </block>
-                        </view>
 
-                        <view class="post-content" v-if="item.postContent" style="white-space: pre-wrap">{{ item.postContent }}</view>
+                                    <block v-else-if="entry.item.imageUrls.length > 1">
+                                        <swiper
+                                            :id="'swiper-' + entry.item.postId"
+                                            class="image-swiper"
+                                            :indicator-dots="true"
+                                            :circular="true"
+                                        >
+                                            <block v-for="(img, imgindex) in entry.item.imageUrls" :key="imgindex">
+                                                <swiper-item>
+                                                    <image
+                                                        class="post-image"
+                                                        :src="img"
+                                                        mode="aspectFill"
+                                                        :lazy-load="true"
+                                                        @error="onImageError"
+                                                        @load="onImageLoad"
+                                                        @tap.stop.prevent="handlePreview"
+                                                        :data-src="img"
+                                                        :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                                        :data-postid="entry.item.postId"
+                                                        :data-postindex="entry.index"
+                                                        :data-imgindex="imgindex"
+                                                        data-type="multi"
+                                                    />
+                                                </swiper-item>
+                                            </block>
+                                        </swiper>
+                                    </block>
+                                </view>
 
-                        <!-- 标签显示 -->
-                        <view v-if="item.postTags && item.postTags.length > 0" class="post-tags">
-                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.postTags" :key="index1">#{{ item }}</text>
+                                <view class="post-content" v-if="entry.item.postContent" style="white-space: pre-wrap">{{ entry.item.postContent }}</view>
+
+                                <view v-if="entry.item.postTags && entry.item.postTags.length > 0" class="post-tags">
+                                    <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="tag" v-for="(tag, index1) in entry.item.postTags" :key="index1">#{{ tag }}</text>
+                                </view>
+                            </view>
+                        </navigator>
+
+                        <view class="delete-section">
+                            <view class="time-left">
+                                <text class="favorite-time">收藏于 {{ entry.item.formattedFavoriteTime || entry.item.formattedCreateTime || '未知时间' }}</text>
+                            </view>
                         </view>
                     </view>
-                </navigator>
+                </view>
 
-                <!-- 收藏时间 -->
+                <view class="app-masonry-column">
+                    <view :class="'post-item-wrapper ' + (entry.item.isOriginal ? 'original-post' : '')" v-for="entry in rightColumnFavorites" :key="entry.item.favoriteId || entry.item._id || entry.index">
+                        <view class="more-menu-btn-top-right" @tap.stop.prevent="showFavoriteActions(entry.item)">
+                            <view class="more-menu-dots-small">
+                                <view class="dot-small"></view>
+                                <view class="dot-small"></view>
+                                <view class="dot-small"></view>
+                            </view>
+                        </view>
 
-                <view class="delete-section">
-                    <view class="time-left">
-                        <text class="favorite-time">收藏于 {{ item.formattedFavoriteTime || item.formattedCreateTime || '未知时间' }}</text>
+                        <view class="author-info-outside">
+                            <image
+                                v-if="entry.item.postAuthorAvatar"
+                                class="author-avatar"
+                                :src="entry.item.postAuthorAvatar"
+                                mode="aspectFill"
+                                @error="onAvatarError"
+                                @load="onAvatarLoad"
+                                :data-postindex="entry.index"
+                                @tap.stop.prevent="navigateToUserProfile"
+                                :data-user-id="entry.item.postAuthorOpenid"
+                            />
+                            <text class="author-name">{{ entry.item.postAuthorName }}</text>
+                        </view>
+
+                        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + entry.item.postId" hover-class="navigator-hover">
+                            <view class="post-item">
+                                <view class="post-title">{{ entry.item.postTitle }}</view>
+                                <view v-if="entry.item.postIsPoem && entry.item.postAuthor" class="poem-author">{{ entry.item.postAuthor }}</view>
+
+                                <view
+                                    v-if="entry.item.imageUrls && entry.item.imageUrls.length > 0"
+                                    class="image-container-wrapper"
+                                    :style="entry.item.imageStyle"
+                                    @tap.stop.prevent="handlePreview"
+                                    :data-src="entry.item.imageUrls[0]"
+                                    :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                >
+                                    <block v-if="entry.item.imageUrls.length === 1">
+                                        <image
+                                            :id="'single-image-' + entry.item.postId"
+                                            class="post-image"
+                                            :src="entry.item.imageUrls[0]"
+                                            mode="aspectFill"
+                                            :lazy-load="true"
+                                            @error="onImageError"
+                                            @load="onImageLoad"
+                                            :data-postid="entry.item.postId"
+                                            :data-postindex="entry.index"
+                                            data-imgindex="0"
+                                            data-type="single"
+                                        />
+                                    </block>
+
+                                    <block v-else-if="entry.item.imageUrls.length > 1">
+                                        <swiper
+                                            :id="'swiper-' + entry.item.postId"
+                                            class="image-swiper"
+                                            :indicator-dots="true"
+                                            :circular="true"
+                                        >
+                                            <block v-for="(img, imgindex) in entry.item.imageUrls" :key="imgindex">
+                                                <swiper-item>
+                                                    <image
+                                                        class="post-image"
+                                                        :src="img"
+                                                        mode="aspectFill"
+                                                        :lazy-load="true"
+                                                        @error="onImageError"
+                                                        @load="onImageLoad"
+                                                        @tap.stop.prevent="handlePreview"
+                                                        :data-src="img"
+                                                        :data-original-image-urls="entry.item.originalImageUrls || entry.item.imageUrls"
+                                                        :data-postid="entry.item.postId"
+                                                        :data-postindex="entry.index"
+                                                        :data-imgindex="imgindex"
+                                                        data-type="multi"
+                                                    />
+                                                </swiper-item>
+                                            </block>
+                                        </swiper>
+                                    </block>
+                                </view>
+
+                                <view class="post-content" v-if="entry.item.postContent" style="white-space: pre-wrap">{{ entry.item.postContent }}</view>
+
+                                <view v-if="entry.item.postTags && entry.item.postTags.length > 0" class="post-tags">
+                                    <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="tag" v-for="(tag, index1) in entry.item.postTags" :key="index1">#{{ tag }}</text>
+                                </view>
+                            </view>
+                        </navigator>
+
+                        <view class="delete-section">
+                            <view class="time-left">
+                                <text class="favorite-time">收藏于 {{ entry.item.formattedFavoriteTime || entry.item.formattedCreateTime || '未知时间' }}</text>
+                            </view>
+                        </view>
                     </view>
                 </view>
             </view>
+
+            <block v-else>
+                <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favorites" :key="item.favoriteId || item._id">
+                    <view class="more-menu-btn-top-right" @tap.stop.prevent="showFavoriteActions(item)">
+                        <view class="more-menu-dots-small">
+                            <view class="dot-small"></view>
+                            <view class="dot-small"></view>
+                            <view class="dot-small"></view>
+                        </view>
+                    </view>
+                    <!-- 作者信息 -->
+
+                    <view class="author-info-outside">
+                        <image
+                            v-if="item.postAuthorAvatar"
+                            class="author-avatar"
+                            :src="item.postAuthorAvatar"
+                            mode="aspectFill"
+                            @error="onAvatarError"
+                            @load="onAvatarLoad"
+                            :data-postindex="index"
+                            @tap.stop.prevent="navigateToUserProfile"
+                            :data-user-id="item.postAuthorOpenid"
+                        />
+                        <text class="author-name">{{ item.postAuthorName }}</text>
+                    </view>
+
+                    <!-- 可点击的内容区域 - 跳转到详情页 -->
+
+                    <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item.postId" hover-class="navigator-hover">
+                        <view class="post-item">
+                            <view class="post-title">{{ item.postTitle }}</view>
+                            <!-- 诗歌作者信息 -->
+                            <view v-if="item.postIsPoem && item.postAuthor" class="poem-author">{{ item.postAuthor }}</view>
+
+                            <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
+                            <view
+                                v-if="item.imageUrls && item.imageUrls.length > 0"
+                                class="image-container-wrapper"
+                                :style="item.imageStyle"
+                                @tap.stop.prevent="handlePreview"
+                                :data-src="item.imageUrls[0]"
+                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                            >
+                                <!-- 单张图片 -->
+                                <block v-if="item.imageUrls.length === 1">
+                                    <image
+                                        :id="'single-image-' + item.postId"
+                                        class="post-image"
+                                        :src="item.imageUrls[0]"
+                                        mode="aspectFill"
+                                        :lazy-load="true"
+                                        @error="onImageError"
+                                        @load="onImageLoad"
+                                        :data-postid="item.postId"
+                                        :data-postindex="index"
+                                        data-imgindex="0"
+                                        data-type="single"
+                                    />
+                                </block>
+
+                                <!-- 多张图片 -->
+                                <block v-else-if="item.imageUrls.length > 1">
+                                    <swiper
+                                        :id="'swiper-' + item.postId"
+                                        class="image-swiper"
+                                        :indicator-dots="true"
+                                        :circular="true"
+                                    >
+                                        <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
+                                            <swiper-item>
+                                                <image
+                                                    class="post-image"
+                                                    :src="img"
+                                                    mode="aspectFill"
+                                                    :lazy-load="true"
+                                                    @error="onImageError"
+                                                    @load="onImageLoad"
+                                                    @tap.stop.prevent="handlePreview"
+                                                    :data-src="img"
+                                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                    :data-postid="item.postId"
+                                                    :data-postindex="index"
+                                                    :data-imgindex="imgindex"
+                                                    data-type="multi"
+                                                />
+                                            </swiper-item>
+                                        </block>
+                                    </swiper>
+                                </block>
+                            </view>
+
+                            <view class="post-content" v-if="item.postContent" style="white-space: pre-wrap">{{ item.postContent }}</view>
+
+                            <!-- 标签显示 -->
+                            <view v-if="item.postTags && item.postTags.length > 0" class="post-tags">
+                                <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.postTags" :key="index1">#{{ item }}</text>
+                            </view>
+                        </view>
+                    </navigator>
+
+                    <!-- 收藏时间 -->
+
+                    <view class="delete-section">
+                        <view class="time-left">
+                            <text class="favorite-time">收藏于 {{ item.formattedFavoriteTime || item.formattedCreateTime || '未知时间' }}</text>
+                        </view>
+                    </view>
+                </view>
+            </block>
         </view>
 
         <!-- 空状态 -->
@@ -121,8 +325,14 @@
         </view>
 
 
-        <!-- 没有更多 -->
-        <view v-if="favorites.length > 0 && !hasMore && !isLoading" class="no-more">
+        <!-- 加载更多 / 没有更多 -->
+        <view v-if="favorites.length > 0 && isLoadingMore" class="loading-more">
+            <text>加载中...</text>
+        </view>
+        <view v-else-if="favorites.length > 0 && hasMore && !isLoading" class="no-more">
+            <text class="load-more-action" @tap="onManualLoadMore">加载更多</text>
+        </view>
+        <view v-else-if="favorites.length > 0 && !hasMore && !isLoading" class="no-more">
             <text>没有更多了</text>
         </view>
     </view>
@@ -158,10 +368,64 @@ export default {
             // 每个帖子的swiper高度，跟随第一张图片
             // 单图瘦高图钳制高度
             imageClampHeights: {},
+            viewportFillTimer: null,
+            viewportAutoFillCount: 0,
 
             imgindex: 0,
             img: ''
         };
+    },
+    computed: {
+        useTwoColumnFavorites() {
+            return !!(this.appLayout && this.appLayout.feedColumns >= 2 && Array.isArray(this.favorites) && this.favorites.length > 1);
+        },
+        isSingleWideFavorite() {
+            return !!(this.appLayout && this.appLayout.feedColumns >= 2 && Array.isArray(this.favorites) && this.favorites.length === 1);
+        },
+        viewportFillWatchKey() {
+            const layout = this.appLayout || {};
+            return `${layout.feedColumns || 1}:${layout.windowWidth || 0}:${layout.windowHeight || 0}`;
+        },
+        leftColumnFavorites() {
+            const list = Array.isArray(this.favorites) ? this.favorites : [];
+            const out = [];
+            for (let i = 0; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        },
+        rightColumnFavorites() {
+            const list = Array.isArray(this.favorites) ? this.favorites : [];
+            const out = [];
+            for (let i = 1; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        }
+    },
+    watch: {
+        favorites(newVal, oldVal) {
+            const newLen = Array.isArray(newVal) ? newVal.length : 0;
+            const oldLen = Array.isArray(oldVal) ? oldVal.length : 0;
+            if (newLen === 0) {
+                this.viewportAutoFillCount = 0;
+                return;
+            }
+            if (newLen > oldLen && !this.isLoading && !this.isLoadingMore && this.hasMore) {
+                this.scheduleViewportFillCheck({ resetCounter: oldLen === 0 });
+            }
+        },
+        viewportFillWatchKey() {
+            if (!this.isLoading && !this.isLoadingMore && this.hasMore && Array.isArray(this.favorites) && this.favorites.length > 0) {
+                this.scheduleViewportFillCheck({ resetCounter: true });
+            }
+        }
+    },
+    beforeUnmount() {
+        if (this.viewportFillTimer && typeof clearTimeout === 'function') {
+            clearTimeout(this.viewportFillTimer);
+            this.viewportFillTimer = null;
+        }
     },
     onLoad: function (options) {
         const folderId = options.folderId;
@@ -201,8 +465,60 @@ export default {
         // 不执行任何操作，避免干扰加载
     },
     methods: {
+        onManualLoadMore() {
+            if (typeof this.loadNext === 'function') {
+                this.loadNext().catch(() => {});
+            }
+        },
+        scheduleViewportFillCheck({ resetCounter = false } = {}) {
+            if (resetCounter) {
+                this.viewportAutoFillCount = 0;
+            }
+            if (this.viewportFillTimer && typeof clearTimeout === 'function') {
+                clearTimeout(this.viewportFillTimer);
+                this.viewportFillTimer = null;
+            }
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.favorites) || this.favorites.length === 0) return;
+            if ((this.viewportAutoFillCount || 0) >= 3) return;
+            if (typeof this.$nextTick !== 'function' || typeof setTimeout !== 'function') return;
+
+            this.$nextTick(() => {
+                this.viewportFillTimer = setTimeout(() => {
+                    this.viewportFillTimer = null;
+                    this.checkViewportFill();
+                }, 120);
+            });
+        },
+        checkViewportFill() {
+            if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+            if (!Array.isArray(this.favorites) || this.favorites.length === 0) return;
+            if ((this.viewportAutoFillCount || 0) >= 3) return;
+            if (typeof this.loadNext !== 'function' || typeof uni === 'undefined' || typeof uni.createSelectorQuery !== 'function') return;
+
+            try {
+                const winH = (typeof window !== 'undefined' && Number(window.innerHeight) > 0)
+                    ? window.innerHeight
+                    : ((this.appLayout && Number(this.appLayout.windowHeight)) || 0);
+                if (!winH) return;
+
+                uni.createSelectorQuery()
+                    .in(this)
+                    .select('#favorite-list-container')
+                    .boundingClientRect((rect) => {
+                        if (!rect || !rect.height) return;
+                        if (!this.hasMore || this.isLoading || this.isLoadingMore) return;
+                        const rectBottom = Number.isFinite(rect.bottom) ? rect.bottom : ((rect.top || 0) + rect.height);
+                        if (rectBottom <= winH + 120) {
+                            this.viewportAutoFillCount = (this.viewportAutoFillCount || 0) + 1;
+                            this.loadNext().catch(() => {});
+                        }
+                    })
+                    .exec();
+            } catch (_) {}
+        },
         acceptFavoriteChange(event) {
-            return event.kind !== 'folder-created' && event.kind !== 'folder-updated';
+            return event.kind !== 'folder-created' && event.kind !== 'folder-updated' && event.kind !== 'folder-reordered';
         },
         applyFavoriteChange(event) {
             if (event.kind === 'folder-deleted' && event.folderId === this.folderId) this.favorites = [];
@@ -450,6 +766,25 @@ export default {
     margin: 0 30rpx 30rpx 30rpx;
 }
 
+.favorites-container--masonry {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 16px 20px 24px;
+    box-sizing: border-box;
+}
+
+.favorites-container--single-wide {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px 20px 24px;
+    box-sizing: border-box;
+}
+
+.favorite-masonry .post-item-wrapper {
+    border-radius: 14px;
+    margin: 0 0 16px 0;
+}
+
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
     position: relative;
@@ -649,6 +984,29 @@ export default {
     padding: 30rpx;
     color: var(--app-muted-text, #999);
     font-size: 28rpx;
+}
+
+.load-more-action {
+    display: inline-block;
+    padding: 12rpx 32rpx;
+    border-radius: 999rpx;
+    font-size: 26rpx;
+    color: var(--app-secondary-text, #666);
+    background: var(--app-subtle-surface-bg, #ebedf0);
+    cursor: pointer;
+}
+
+@media screen and (min-width: 600px) {
+    .favorite-content-page {
+        padding-bottom: calc(28px + var(--app-safe-area-bottom, 0px));
+        box-sizing: border-box;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .empty-container {
+        padding: 48rpx 30rpx;
+    }
 }
 
 /* 空状态样式 */

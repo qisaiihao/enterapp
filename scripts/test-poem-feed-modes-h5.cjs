@@ -1,7 +1,55 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { setTimeout: delay } = require('node:timers/promises');
 const puppeteer = require('puppeteer-core');
+
+async function checkReadingCardGestures(page) {
+  const selector = '.poem-card .post-content-navigator';
+  const cardPoint = async () => {
+    const card = await page.waitForSelector(selector, { visible: true });
+    const { x, y, width, height } = await card.boundingBox();
+    return { x: x + width / 2, y: y + height / 2 };
+  };
+  const assertReadingRoute = async message => {
+    assert.equal(await page.evaluate(() => location.hash), '#/pages/poem-square/poem-square', message);
+  };
+
+  await page.click(selector);
+  await page.waitForFunction(() => getCurrentPages().at(-1)?.$vm?.postList?.[0]?.isExpanded);
+  await delay(500);
+  await assertReadingRoute('短按只展开卡片');
+
+  const point = await cardPoint();
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 30, point.y);
+  await delay(500);
+  await page.mouse.up();
+  await assertReadingRoute('拖动卡片不会打开详情');
+
+  const checkLongpress = async (press, release) => {
+    const { x, y } = await cardPoint();
+    await press(x, y);
+    try {
+      await page.waitForFunction(() => {
+        const detail = getCurrentPages().at(-1);
+        return detail?.route === 'pages/post-detail/post-detail' && detail.$vm?.post?._id === 'reading-0';
+      });
+    } finally {
+      await release();
+    }
+    await page.evaluate(() => new Promise((resolve, reject) => uni.navigateBack({ success: resolve, fail: reject })));
+    await page.waitForFunction(() => getCurrentPages().at(-1)?.$vm?.poemMode === 'reading');
+  };
+
+  await checkLongpress(async (x, y) => {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+  }, () => page.mouse.up());
+  await checkLongpress((x, y) => page.touchscreen.touchStart(x, y), () => page.touchscreen.touchEnd());
+  console.log('PASS H5 reading card mouse and touch longpress, short click, and drag');
+}
 
 async function main() {
   const base = new URL(process.env.H5_URL || 'http://127.0.0.1:8081/');
@@ -34,7 +82,7 @@ async function main() {
       uni.$ensureTcbAuthenticated = async () => {};
       let randomBatch = 0;
       const tcb = { __skipAuth: true, async callFunction({ name, data = {} }) {
-        let result = { success: true, posts: [], poets: [], activities: [], notices: [], total: 0 };
+        let result = { success: true, posts: [], comments: [], poets: [], activities: [], notices: [], total: 0 };
         if (name === 'getPostList') {
           const original = data.isOriginal !== false;
           const feed = original ? 'original' : 'reading';
@@ -46,6 +94,10 @@ async function main() {
             votes: 3, isVoted: false, imageUrls: [], tags: []
           }));
         }
+        if (name === 'getPostDetail') result.post = {
+          _id: data.postId, isPoem: true, isOriginal: false, title: '晚风', author: '海子',
+          content: '晚风轻轻翻过山坡', votes: 3, createTime: '2026-11-01T00:00:00Z', imageUrls: [], tags: []
+        };
         if (name === 'getPoetList') result.poets = ['海子', '顾城', '北岛'].map((name, index) => ({ _id: `poet-${index}`, name }));
         if (name === 'getRecentActivities' && !data.noticeOnly) result.activities = [{
           _id: 'activity-review', title: '秋日诗歌共创', summary: '让诗歌在日常相遇',
@@ -88,6 +140,7 @@ async function main() {
     assert.deepEqual(await current(), { route: 'pages/poem-square/poem-square', mode: 'reading' });
     assert.equal(await page.$('.poem-filter-container'), null);
     console.log('PASS H5 original random refresh and reading menu visibility');
+    await checkReadingCardGestures(page);
     assert.ok(originalLayout.crow.top >= originalLayout.tabs.bottom + 4, '乌鸦与切换栏保持距离');
     const geometry = await page.evaluate(() => {
       const box = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };

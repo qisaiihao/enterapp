@@ -1088,7 +1088,14 @@ export default {
 .collection-create::after { border: none; }
 .collection-create:active, .collection-sheet .folder-item:active { opacity: 0.65; }
 .primary-btn:active { opacity: 0.65; }
+
+@media screen and (max-height: 500px) {
+    .collection-sheet .folder-item,
+    .collection-create {
+        min-height: 88rpx;
+        padding: 16rpx 28rpx;
+    }
+}
 </style>
 
-<style src="@/styles/collection-create-dialog.css">.primary-btn:active { opacity: 0.65; }
-</style>
+<style src="@/styles/collection-create-dialog.css"></style>

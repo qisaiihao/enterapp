@@ -37,7 +37,12 @@ private enum PoemWidgetResources {
 
     static func font(size: CGFloat) -> Font {
         _ = fontRegistered
-        return .custom(fontName, size: size)
+        return .custom(fontName, fixedSize: size)
+    }
+
+    static func measuringFont(size: CGFloat) -> UIFont {
+        _ = fontRegistered
+        return UIFont(name: fontName, size: size) ?? .systemFont(ofSize: size)
     }
 }
 
@@ -83,7 +88,14 @@ struct NextWidgetPoem: AppIntent {
 
 struct PoemWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @ScaledMetric(relativeTo: .body) private var fontScale: CGFloat = 1
     let entry: PoemWidgetEntry
+
+    private static let lineSpacing: CGFloat = 3.5
+    private static let attributionGap: CGFloat = 10
+    private static let iconSize: CGFloat = 22
+    private static let nextButtonWidth: CGFloat = 36
+    private static let minimumTextScale: CGFloat = 0.85
 
     private var wide: Bool { family == .systemMedium }
     private var custom: Bool { entry.options.palette == "custom" }
@@ -95,44 +107,89 @@ struct PoemWidgetView: View {
     }
 
     var body: some View {
-        if #available(iOS 17.0, *) {
-            card.containerBackground(for: .widget) { paper }
-        } else {
-            card.padding(.horizontal, wide ? 19 : 15)
-                .padding(.top, 14)
-                .padding(.bottom, wide ? 4 : 14)
-                .background(paper.ignoresSafeArea())
-                .widgetURL(legacyNextURL)
+        Group {
+            if #available(iOS 17.0, *) {
+                card.containerBackground(for: .widget) { paper }
+            } else {
+                card.padding(.horizontal, wide ? 19 : 15)
+                    .padding(.vertical, 14)
+                    .background(paper.ignoresSafeArea())
+            }
         }
+        .widgetURL(detailURL)
     }
 
     private var card: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(entry.poem?.excerpt ?? entry.emptyText)
-                .font(PoemWidgetResources.font(size: wide ? 20 : 17))
-                .lineSpacing(3.5)
-                .lineLimit(wide ? 4 : 5)
-                .minimumScaleFactor(0.85)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            if wide {
-                HStack(spacing: 7) {
-                    if let icon = PoemWidgetResources.iconImage {
-                        brandIcon(icon)
-                    }
-                    if let poem = entry.poem {
-                        Text(poem.title.isEmpty ? poem.author : "\(poem.author) · \(poem.title)")
-                            .font(PoemWidgetResources.font(size: 12.5))
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 6)
-                    if entry.nextToken != nil {
-                        nextButton
-                    }
+        GeometryReader { geometry in
+            let authorSize = 12.5 * fontScale
+            let authorHeight = wide ? ceil(PoemWidgetResources.measuringFont(size: authorSize).lineHeight) : 0
+            let footerSpace = wide ? authorHeight + Self.attributionGap : 0
+            let excerptSize = CGSize(width: geometry.size.width, height: max(0, geometry.size.height - footerSpace))
+
+            VStack(alignment: .leading, spacing: Self.attributionGap) {
+                excerpt(in: excerptSize)
+                    .frame(width: excerptSize.width, height: excerptSize.height,
+                           alignment: wide ? .topLeading : .leading)
+                if wide {
+                    attribution(fontSize: authorSize, height: authorHeight)
                 }
-                .frame(height: 44)
             }
         }
         .foregroundColor(ink)
+    }
+
+    @ViewBuilder
+    private func excerpt(in size: CGSize) -> some View {
+        let text = entry.poem?.excerpt ?? entry.emptyText
+        let fontSize = (wide ? 20 : 17) * fontScale
+        let lineLimit = wide ? 4 : 5
+        let font = PoemWidgetResources.measuringFont(size: fontSize)
+        let textWidth: (String) -> CGFloat = { ($0 as NSString).size(withAttributes: [.font: font]).width }
+
+        if size.width > 0, size.height > 0, entry.poem != nil,
+           let rows = PoemWidgetVerse.rows(in: text, fitting: size.width / Self.minimumTextScale, measure: textWidth) {
+            let candidates = rows.prefix(lineLimit)
+            let widest = candidates.map(textWidth).max() ?? 0
+            let scale = min(1, size.width / max(widest, 1), size.height / font.lineHeight)
+            let fittedSize = fontSize * scale
+            let lineHeight = ceil(font.withSize(fittedSize).lineHeight)
+            let rowsThatFit = Int((size.height + Self.lineSpacing) / (lineHeight + Self.lineSpacing))
+            let visibleRows = candidates.prefix(max(1, rowsThatFit))
+
+            VStack(alignment: .leading, spacing: Self.lineSpacing) {
+                ForEach(visibleRows.indices, id: \.self) { index in
+                    Text(verbatim: visibleRows[index])
+                        .font(PoemWidgetResources.font(size: fittedSize))
+                        .lineLimit(1)
+                        .minimumScaleFactor(Self.minimumTextScale)
+                        .frame(height: lineHeight)
+                }
+            }
+        } else {
+            Text(verbatim: text)
+                .font(PoemWidgetResources.font(size: fontSize))
+                .lineSpacing(Self.lineSpacing)
+                .lineLimit(lineLimit)
+                .minimumScaleFactor(Self.minimumTextScale)
+        }
+    }
+
+    private func attribution(fontSize: CGFloat, height: CGFloat) -> some View {
+        let icon = PoemWidgetResources.iconImage
+        let author = entry.poem.map { $0.title.isEmpty ? $0.author : "\($0.author) · \($0.title)" } ?? ""
+        return Text(verbatim: author)
+            .font(PoemWidgetResources.font(size: fontSize))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: height)
+            .padding(.leading, icon == nil ? 0 : Self.iconSize + 7)
+            .padding(.trailing, entry.nextToken == nil ? 0 : Self.nextButtonWidth + 6)
+            .overlay(alignment: .leading) {
+                if let icon { brandIcon(icon) }
+            }
+            .overlay(alignment: .trailing) {
+                if entry.nextToken != nil { nextButton }
+            }
     }
 
     @ViewBuilder
@@ -147,20 +204,20 @@ struct PoemWidgetView: View {
             image
                 .widgetAccentedRenderingMode(.fullColor)
                 .scaledToFill()
-                .frame(width: 22, height: 22)
+                .frame(width: Self.iconSize, height: Self.iconSize)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .accessibilityHidden(true)
         } else {
             image
                 .scaledToFill()
-                .frame(width: 22, height: 22)
+                .frame(width: Self.iconSize, height: Self.iconSize)
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .accessibilityHidden(true)
         }
         #else
         image
             .scaledToFill()
-            .frame(width: 22, height: 22)
+            .frame(width: Self.iconSize, height: Self.iconSize)
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .accessibilityHidden(true)
         #endif
@@ -170,9 +227,16 @@ struct PoemWidgetView: View {
     private var nextButton: some View {
         if #available(iOS 17.0, *) {
             Button(intent: NextWidgetPoem()) { nextLabel }.buttonStyle(.plain)
-        } else {
-            nextLabel
+        } else if let legacyNextURL {
+            Link(destination: legacyNextURL) { nextLabel }.buttonStyle(.plain)
         }
+    }
+
+    private var detailURL: URL? {
+        guard let postId = entry.poem?.id, !postId.isEmpty else { return nil }
+        var url = URLComponents(string: "poementer://poem-widget/detail")
+        url?.queryItems = [URLQueryItem(name: "id", value: postId)]
+        return url?.url
     }
 
     private var legacyNextURL: URL? {
@@ -185,7 +249,7 @@ struct PoemWidgetView: View {
             .stroke(ink, style: StrokeStyle(lineWidth: 1.55, lineCap: .round, lineJoin: .round))
             .frame(width: 17, height: 17)
             .padding(.horizontal, 8)
-            .frame(minWidth: 36, minHeight: 44)
+            .frame(minWidth: Self.nextButtonWidth, minHeight: 44)
             .contentShape(Rectangle())
             .accessibilityLabel("换一首")
     }
