@@ -37,8 +37,9 @@ jobs:
       - name: Prepare & verify Huiwen-mincho.ttf for WidgetKit
         run: |
           set -euo pipefail
-          python3 -m pip install --quiet fonttools brotli
-          python3 - <<'PY'
+          python3 -m venv "$RUNNER_TEMP/font-venv"
+          "$RUNNER_TEMP/font-venv/bin/pip" install --quiet fonttools brotli
+          "$RUNNER_TEMP/font-venv/bin/python" - <<'PY'
           from fontTools.ttLib import TTFont
           font = TTFont("static/fonts/Huiwen-mincho-compressed.woff2")
           font.flavor = None
