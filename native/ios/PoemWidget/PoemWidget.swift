@@ -137,23 +137,34 @@ struct PoemWidgetView: View {
 
     @ViewBuilder
     private func brandIcon(_ icon: UIImage) -> some View {
-        let base = Image(uiImage: icon)
+        let image = Image(uiImage: icon)
             .renderingMode(.original)
             .resizable()
             .interpolation(.high)
+        #if compiler(>=6.0)
+        if #available(iOS 18.0, *) {
+            image
+                .widgetAccentedRenderingMode(.fullColor)
+                .antialiased(true)
+                .scaledToFill()
+                .frame(width: 22, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .accessibilityHidden(true)
+        } else {
+            image
+                .antialiased(true)
+                .scaledToFill()
+                .frame(width: 22, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .accessibilityHidden(true)
+        }
+        #else
+        image
             .antialiased(true)
             .scaledToFill()
             .frame(width: 22, height: 22)
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             .accessibilityHidden(true)
-        #if compiler(>=6.0)
-        if #available(iOS 18.0, *) {
-            base.widgetAccentedRenderingMode(.fullColor)
-        } else {
-            base
-        }
-        #else
-        base
         #endif
     }
 
