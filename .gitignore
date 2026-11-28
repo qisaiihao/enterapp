@@ -58,6 +58,7 @@ DerivedData/
 /nativeResources/ios/ios-extension.json
 /nativeResources/ios/UniApp.entitlements
 /uni_modules/poem-widget/utssdk/app-ios/Plugins/PoemWidget.appex/
+/native/ios/PoemWidget/Huiwen-mincho.ttf
 
 # Netbeans
 /nbproject/private/

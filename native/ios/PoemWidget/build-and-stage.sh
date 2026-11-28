@@ -35,6 +35,14 @@ fi
 version="$(node -p 'require(process.argv[1]).versionName' "$root/manifest.json")"
 build="$(node -p 'require(process.argv[1]).versionCode' "$root/manifest.json")"
 
+python3 - "$root/static/fonts/Huiwen-mincho-compressed.woff2" "$source_dir/Huiwen-mincho.ttf" <<'PY'
+import sys
+from fontTools.ttLib import TTFont
+font = TTFont(sys.argv[1])
+font.flavor = None
+font.save(sys.argv[2])
+PY
+
 xcodebuild -project "$source_dir/PoemWidget.xcodeproj" -target PoemWidget -configuration Release -sdk iphoneos \
     DEVELOPMENT_TEAM="$team" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$identity" \
     PROVISIONING_PROFILE_SPECIFIER="$profile_name" MARKETING_VERSION="$version" CURRENT_PROJECT_VERSION="$build" \

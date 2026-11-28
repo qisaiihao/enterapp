@@ -1,6 +1,74 @@
 import AppIntents
+import CoreText
 import SwiftUI
+import UIKit
 import WidgetKit
+
+private final class PoemWidgetBundleToken {}
+
+private enum PoemWidgetResources {
+    static let bundle = Bundle(for: PoemWidgetBundleToken.self)
+    static let fontName = "Huiwen-mincho"
+
+    static let fontRegistered: Bool = {
+        let candidates = [
+            bundle.url(forResource: fontName, withExtension: "ttf"),
+            Bundle.main.url(forResource: fontName, withExtension: "ttf")
+        ]
+        for case let url? in candidates {
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            return true
+        }
+        return false
+    }()
+
+    static let iconImage: UIImage? = {
+        let paths = [
+            bundle.path(forResource: "poem-widget-icon", ofType: "png"),
+            Bundle.main.path(forResource: "poem-widget-icon", ofType: "png")
+        ]
+        for case let path? in paths {
+            if let image = UIImage(contentsOfFile: path) {
+                return image
+            }
+        }
+        return UIImage(named: "poem-widget-icon", in: bundle, compatibleWith: nil)
+    }()
+
+    static func font(size: CGFloat) -> Font {
+        _ = fontRegistered
+        return .custom(fontName, size: size)
+    }
+}
+
+private struct PoemWidgetSwapIcon: Shape {
+    func path(in rect: CGRect) -> Path {
+        let sx = rect.width / 24.0
+        let sy = rect.height / 24.0
+        let radius = 3.5 * min(sx, sy)
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * sx, y: rect.minY + y * sy)
+        }
+
+        var path = Path()
+        // Upper loop arrow (right-bottom -> top-right rounded corner -> left)
+        path.move(to: pt(21, 15))
+        path.addArc(tangent1End: pt(21, 6), tangent2End: pt(3.5, 6), radius: radius)
+        path.addLine(to: pt(3.5, 6))
+        path.move(to: pt(8, 1.5))
+        path.addLine(to: pt(3.5, 6))
+        path.addLine(to: pt(8, 10.5))
+
+        // Lower loop arrow (left-top -> bottom-left rounded corner -> right)
+        path.move(to: pt(3, 9))
+        path.addArc(tangent1End: pt(3, 18), tangent2End: pt(20.5, 18), radius: radius)
+        path.addLine(to: pt(20.5, 18))
+        path.move(to: pt(16, 13.5))
+        path.addLine(to: pt(20.5, 18))
+        path.addLine(to: pt(16, 22.5))
+        return path
+    }
+}
 
 @available(iOS 17.0, *)
 struct NextWidgetPoem: AppIntent {
@@ -41,21 +109,19 @@ struct PoemWidgetView: View {
     private var card: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(entry.poem?.excerpt ?? entry.emptyText)
-                .font(.system(size: wide ? 20 : 17, design: .serif))
-                .lineSpacing(3)
+                .font(PoemWidgetResources.font(size: wide ? 20 : 17))
+                .lineSpacing(3.5)
                 .lineLimit(wide ? 4 : 5)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             if wide {
                 HStack(spacing: 7) {
-                    Image("poem-widget-icon")
-                        .resizable()
-                        .frame(width: 22, height: 22)
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .accessibilityHidden(true)
+                    if let icon = PoemWidgetResources.iconImage {
+                        brandIcon(icon)
+                    }
                     if let poem = entry.poem {
                         Text(poem.title.isEmpty ? poem.author : "\(poem.author) · \(poem.title)")
-                            .font(.system(size: 12))
+                            .font(PoemWidgetResources.font(size: 12.5))
                             .lineLimit(1)
                     }
                     Spacer(minLength: 6)
@@ -67,6 +133,28 @@ struct PoemWidgetView: View {
             }
         }
         .foregroundColor(ink)
+    }
+
+    @ViewBuilder
+    private func brandIcon(_ icon: UIImage) -> some View {
+        let base = Image(uiImage: icon)
+            .renderingMode(.original)
+            .resizable()
+            .interpolation(.high)
+            .antialiased(true)
+            .scaledToFill()
+            .frame(width: 22, height: 22)
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .accessibilityHidden(true)
+        #if compiler(>=6.0)
+        if #available(iOS 18.0, *) {
+            base.widgetAccentedRenderingMode(.fullColor)
+        } else {
+            base
+        }
+        #else
+        base
+        #endif
     }
 
     @ViewBuilder
@@ -84,11 +172,13 @@ struct PoemWidgetView: View {
     }
 
     private var nextLabel: some View {
-        Text("换一首")
-            .font(.system(size: 12, weight: .medium))
+        PoemWidgetSwapIcon()
+            .stroke(ink, style: StrokeStyle(lineWidth: 1.55, lineCap: .round, lineJoin: .round))
+            .frame(width: 17, height: 17)
             .padding(.horizontal, 8)
-            .frame(minHeight: 44)
+            .frame(minWidth: 36, minHeight: 44)
             .contentShape(Rectangle())
+            .accessibilityLabel("换一首")
     }
 
     private func color(_ hex: String?, fallback: UInt32) -> Color {

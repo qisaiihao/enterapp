@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Show Xcode & version info
         run: |
@@ -33,6 +33,36 @@ jobs:
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "APP_BUILD=$BUILD" >> "$GITHUB_ENV"
           echo "Building PoemWidget for version $VERSION ($BUILD), mode=${{ inputs.sign_mode }}"
+
+      - name: Prepare & verify Huiwen-mincho.ttf for WidgetKit
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet fonttools brotli
+          python3 - <<'PY'
+          from fontTools.ttLib import TTFont
+          font = TTFont("static/fonts/Huiwen-mincho-compressed.woff2")
+          font.flavor = None
+          font.save("native/ios/PoemWidget/Huiwen-mincho.ttf")
+          PY
+          ls -lh "native/ios/PoemWidget/Huiwen-mincho.ttf"
+          swift - <<'SWIFT'
+          import CoreText
+          import Foundation
+          let url = URL(fileURLWithPath: "native/ios/PoemWidget/Huiwen-mincho.ttf") as CFURL
+          var err: Unmanaged<CFError>?
+          guard CTFontManagerRegisterFontsForURL(url, .process, &err) else {
+              fatalError("CoreText register failed: \(String(describing: err))")
+          }
+          let font = CTFontCreateWithName("Huiwen-mincho" as CFString, 20, nil)
+          let psName = CTFontCopyPostScriptName(font) as String
+          let chars = Array("做一个坏诗人，风翻过书页".utf16)
+          var glyphs = [CGGlyph](repeating: 0, count: chars.count)
+          let ok = CTFontGetGlyphsForCharacters(font, chars, &glyphs, chars.count)
+          print("CoreText verified font=\(psName), hasAllGlyphs=\(ok), sampleGlyphs=\(glyphs.prefix(6))")
+          guard psName == "Huiwen-mincho" && ok && !glyphs.contains(0) else {
+              fatalError("Huiwen-mincho glyph verification failed")
+          }
+          SWIFT
 
       - name: Build signed PoemWidget.appex
         if: ${{ inputs.sign_mode == 'signed' }}
@@ -90,7 +120,7 @@ jobs:
           security import "$P12_PATH" -P "$IOS_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
 
-          # Detect exact signing identity SHA-1 from the imported .p12
+          # Detect exact signing identity from the imported .p12
           SIGN_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk -F'"' '/1\)/{print $2; exit}')
           if [[ -z "$SIGN_IDENTITY" ]]; then
             echo "::error::No valid codesigning identity found in the imported .p12 certificate."
@@ -120,6 +150,8 @@ jobs:
             SYMROOT="$BUILD_DIR/products" \
             build
 
+          test -f "$BUILD_DIR/PoemWidget.appex/Huiwen-mincho.ttf"
+          test -f "$BUILD_DIR/PoemWidget.appex/poem-widget-icon.png"
           codesign --verify --strict --verbose=2 "$BUILD_DIR/PoemWidget.appex"
 
           STAGE_DIR="$RUNNER_TEMP/poem-widget-output"
@@ -154,6 +186,9 @@ jobs:
             OBJROOT="$BUILD_DIR/intermediates" \
             SYMROOT="$BUILD_DIR/products" \
             build
+
+          test -f "$BUILD_DIR/PoemWidget.appex/Huiwen-mincho.ttf"
+          test -f "$BUILD_DIR/PoemWidget.appex/poem-widget-icon.png"
 
           STAGE_DIR="$RUNNER_TEMP/poem-widget-output"
           mkdir -p "$STAGE_DIR/uni_modules/poem-widget/utssdk/app-ios/Plugins"

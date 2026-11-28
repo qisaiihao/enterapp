@@ -27,7 +27,7 @@
           <view v-if="size === 'wide'" class="preview-footer">
             <image class="preview-icon" src="/pages-user/static/poem-widget-icon.png" mode="aspectFit" />
             <text class="preview-author">{{ preview.title ? preview.author + ' · ' + preview.title : preview.author }}</text>
-            <text class="preview-next">换一首</text>
+            <view class="preview-next" role="img" aria-label="换一首" />
           </view>
         </view>
       </view>
@@ -313,7 +313,7 @@ export default {
 .preview-excerpt {
   display: -webkit-box;
   overflow: hidden;
-  font-family: serif;
+  font-family: 'Huiwen-mincho', '汇文明朝', serif;
   font-size: 32rpx;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -344,12 +344,18 @@ export default {
 .preview-author {
   flex: 1;
   overflow: hidden;
+  font-family: 'Huiwen-mincho', '汇文明朝', serif;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .preview-next {
-  font-weight: 600;
+  flex: 0 0 34rpx;
+  width: 34rpx;
+  height: 34rpx;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15V9.5A3.5 3.5 0 0 0 17.5 6H3.5'/%3E%3Cpath d='M8 1.5L3.5 6L8 10.5'/%3E%3Cpath d='M3 9v5.5A3.5 3.5 0 0 0 6.5 18h14'/%3E%3Cpath d='M16 13.5L20.5 18L16 22.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15V9.5A3.5 3.5 0 0 0 17.5 6H3.5'/%3E%3Cpath d='M8 1.5L3.5 6L8 10.5'/%3E%3Cpath d='M3 9v5.5A3.5 3.5 0 0 0 6.5 18h14'/%3E%3Cpath d='M16 13.5L20.5 18L16 22.5'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .widget-swatches {
@@ -362,7 +368,7 @@ export default {
   min-height: 72rpx;
   padding: 10rpx 0;
   border: 3rpx solid transparent;
-  font-family: serif;
+  font-family: 'Huiwen-mincho', '汇文明朝', serif;
   font-size: 30rpx;
 }
 
